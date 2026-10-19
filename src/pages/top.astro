@@ -1,0 +1,49 @@
+---
+import Layout from "../layouts/Layout.astro";
+import TopList, { type TopItem } from "../components/TopList.tsx";
+import { getUserAnimeList, type UserAnimeRecord } from "../lib/list";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const { records, animeDataMap, counts } = await getUserAnimeList(user.id);
+
+function toTopItem(record: UserAnimeRecord): TopItem {
+  const anime = animeDataMap.get(record.anilistId);
+  return {
+    anilistId: record.anilistId,
+    score: record.score ?? null,
+    title: anime?.title?.english || anime?.title?.romaji || `Anime #${record.anilistId}`,
+    coverImage: anime?.coverImage?.large ?? null,
+    color: anime?.coverImage?.color ?? null,
+    year: anime?.seasonYear ?? null,
+    format: anime?.format ?? null,
+    episodes: anime?.episodes ?? null,
+  };
+}
+
+const topRecords = records
+  .filter((record) => record.topPosition != null)
+  .sort((a, b) => (a.topPosition ?? 0) - (b.topPosition ?? 0));
+
+const initialItems: TopItem[] = topRecords.map(toTopItem);
+
+const topIds = new Set(topRecords.map((record) => record.anilistId));
+const completedRecords = records.filter((record) => record.status === "COMPLETED");
+const candidates: TopItem[] = completedRecords
+  .filter((record) => !topIds.has(record.anilistId))
+  .map(toTopItem);
+---
+
+<Layout title="Mi Top" activeNav="top" counts={counts}>
+  <TopList
+    client:load
+    initialItems={initialItems}
+    candidates={candidates}
+    hasCompleted={completedRecords.length > 0}
+  />
+</Layout>

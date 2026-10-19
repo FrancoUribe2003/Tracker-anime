@@ -1,0 +1,72 @@
+---
+import Navbar from "../components/Navbar";
+import { SITE_NAME } from "../lib/site";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  activeNav?: "inicio" | "catalogo" | "hoy" | "top";
+  counts?: {
+    completed?: number;
+    current?: number;
+    planning?: number;
+    top?: number;
+  };
+}
+
+const { title, activeNav, counts } = Astro.props;
+const pageTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
+const user = Astro.locals.user;
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="robots" content="noindex" />
+    <meta name="description" content={`${SITE_NAME} — Plataforma de seguimiento personal de anime`} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <title>{pageTitle}</title>
+  </head>
+  <body class="flex min-h-dvh flex-col bg-obsidian font-sans text-text antialiased selection:bg-violet selection:text-white">
+    <Navbar client:idle user={user} currentPath={currentPath} activeNav={activeNav} counts={counts} />
+
+    <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <slot />
+    </main>
+
+    <footer class="mt-auto border-t border-white/5 py-6 text-center text-xs text-text-dim" style="padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem)">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <slot name="footer">
+          <p class="tracking-wide">
+            {SITE_NAME} &bull; Plataforma de seguimiento personal de anime
+          </p>
+          <p class="mt-1 tracking-wide">
+            Datos provistos por
+            <a
+              href="https://anilist.co"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-text-muted underline underline-offset-2 transition hover:text-text"
+            >
+              AniList
+            </a>
+          </p>
+        </slot>
+      </div>
+    </footer>
+
+    <script is:inline>
+      // Al volver con el botón "atrás", el navegador puede restaurar la página
+      // desde el bfcache con datos previos a una mutación. Forzamos recarga.
+      window.addEventListener("pageshow", (event) => {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
+    </script>
+  </body>
+</html>

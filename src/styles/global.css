@@ -1,0 +1,962 @@
+@import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+@theme {
+  --color-obsidian: #0B0F19;
+  --color-surface: #111827;
+  --color-surface-2: #1E293B;
+
+  --color-violet: #8B5CF6;
+  --color-cyan: #06B6D4;
+  --color-emerald: #10B981;
+  --color-amber: #F59E0B;
+
+  --color-text: #F9FAFB;
+  --color-text-muted: #94A3B8;
+  --color-text-dim: #475569;
+
+  --color-muted: #94A3B8;
+  --color-dim: #475569;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+@layer base {
+  *, ::before, ::after {
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: #0B0F19;
+    color: #F9FAFB;
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+    overflow-x: clip;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-slide-in 0.3s ease-out;
+}
+
+.progress-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.progress-slider:focus {
+  outline: none;
+}
+
+.progress-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    #06B6D4 0%,
+    #06B6D4 var(--pct, 0%),
+    rgba(255, 255, 255, 0.1) var(--pct, 0%),
+    rgba(255, 255, 255, 0.1) 100%
+  );
+}
+
+.progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;
+  border-radius: 9999px;
+  background: #06B6D4;
+  border: 2px solid #0B0F19;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  transition: box-shadow 0.15s ease;
+}
+
+.progress-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.5);
+}
+
+.progress-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-slider::-moz-range-progress {
+  height: 8px;
+  border-radius: 9999px;
+  background: #06B6D4;
+}
+
+.progress-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: #06B6D4;
+  border: 2px solid #0B0F19;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.progress-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.5);
+}
+
+.btn-swap {
+  --btn-face: #111827;
+  --btn-grad: linear-gradient(135deg, #8B5CF6, #06B6D4);
+  position: relative;
+  display: inline-block;
+  background-color: transparent;
+  color: #F9FAFB;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-radius: 10px;
+  width: 150px;
+  height: 60px;
+  border: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(51, 51, 51, 0.2);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.btn-swap::before {
+  content: var(--btn-section, "");
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: var(--btn-grad);
+  transform: translate(0%, 90%);
+  z-index: 99;
+  position: relative;
+  transform-origin: bottom;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.btn-swap::after {
+  content: var(--btn-label, "Ver todo");
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--btn-face);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform-origin: top;
+  transform: translate(0%, -100%);
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.btn-swap:hover::before {
+  transform: translate(0%, 0%);
+}
+
+.btn-swap:hover::after {
+  transform: translate(0%, -200%);
+}
+
+.btn-swap:focus {
+  outline: none;
+}
+
+.btn-swap:active {
+  scale: 0.95;
+}
+
+.logout-btn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 3rem;
+  padding: 0 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-surface-2);
+  color: var(--color-amber);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  transition: color 0.2s;
+}
+
+.logout-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  border-radius: inherit;
+  background: linear-gradient(82.3deg, var(--color-violet) 10.8%, var(--color-cyan) 94.3%);
+  transition: all 0.475s;
+}
+
+.logout-btn:hover::before {
+  transform: scaleX(1);
+}
+
+.logout-btn:hover {
+  color: var(--color-text);
+}
+
+.logout-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.logout-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-outline-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.nav-outline-rect {
+  fill: none;
+  stroke: var(--color-violet);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  height: 40px;
+  padding: 0 15px 0 34px;
+  background-color: #1E293B;
+  border-radius: 10px;
+  color: #F9FAFB;
+  border: none;
+  position: relative;
+  cursor: pointer;
+  font-weight: 500;
+  transition-duration: 0.2s;
+}
+
+.btn-back .arrow {
+  position: absolute;
+  left: 8px;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-back:hover {
+  background-color: #334155;
+  transition-duration: 0.2s;
+}
+
+.btn-back:hover .arrow {
+  animation: slide-left 0.6s ease-out both;
+}
+
+@keyframes slide-left {
+  0% {
+    transform: translateX(10px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.btn-back:active {
+  transform: translate(1px, 1px);
+  transition-duration: 0.2s;
+}
+
+.auth-wrap {
+  --auth-focus: #06B6D4;
+  --auth-font: #F9FAFB;
+  --auth-font-sub: #94A3B8;
+  --auth-bg: #111827;
+  --auth-bg-alt: #1E293B;
+  --auth-main: #8B5CF6;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  font-family: var(--font-sans);
+}
+
+.auth-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.auth-switch .label {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--auth-font-sub);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.auth-switch .label.active {
+  color: var(--auth-font);
+  text-decoration: underline;
+}
+
+.auth-toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.auth-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.auth-slider {
+  box-sizing: border-box;
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+  border: 2px solid var(--auth-main);
+  box-shadow: 4px 4px var(--auth-main);
+  cursor: pointer;
+  background-color: var(--auth-bg);
+  transition: 0.3s;
+}
+
+.auth-slider::before {
+  box-sizing: border-box;
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  border: 2px solid var(--auth-main);
+  border-radius: 5px;
+  left: -2px;
+  bottom: 2px;
+  background-color: var(--auth-bg);
+  box-shadow: 0 3px 0 var(--auth-main);
+  transition: 0.3s;
+}
+
+.auth-toggle input:checked + .auth-slider {
+  background-color: var(--auth-focus);
+}
+
+.auth-toggle input:checked + .auth-slider::before {
+  transform: translateX(30px);
+}
+
+.auth-toggle input:focus-visible + .auth-slider {
+  outline: 2px solid var(--auth-focus);
+  outline-offset: 3px;
+}
+
+.auth-flip {
+  position: relative;
+  width: 100%;
+  perspective: 1000px;
+}
+
+.auth-flip-inner {
+  display: grid;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+.auth-flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.auth-face {
+  grid-area: 1 / 1;
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 8px;
+  border: 2px solid var(--auth-main);
+  box-shadow: 5px 5px var(--auth-main);
+  background: var(--auth-bg);
+  text-align: center;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.auth-face.back {
+  transform: rotateY(180deg);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-input {
+  width: 100%;
+  height: 44px;
+  border-radius: 6px;
+  border: 2px solid var(--auth-main);
+  background-color: var(--auth-bg-alt);
+  box-shadow: 4px 4px var(--auth-main);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--auth-font);
+  padding: 0 12px;
+  outline: none;
+  font-family: inherit;
+}
+
+.auth-input::placeholder {
+  color: var(--auth-font-sub);
+  opacity: 0.8;
+}
+
+.auth-input:focus {
+  border-color: var(--auth-focus);
+}
+
+.auth-input.has-error {
+  border-color: #F59E0B;
+}
+
+.auth-field-error {
+  margin-top: 5px;
+  text-align: left;
+  font-size: 0.72rem;
+  color: #F59E0B;
+}
+
+.auth-alert {
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 2px solid rgba(245, 158, 11, 0.4);
+  background-color: rgba(245, 158, 11, 0.1);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.78rem;
+  color: #F59E0B;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-btn {
+  width: 130px;
+  height: 42px;
+  margin: 4px auto 0;
+  border-radius: 6px;
+  border: 2px solid var(--auth-main);
+  background-color: var(--auth-bg);
+  box-shadow: 4px 4px var(--auth-main);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--auth-font);
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.auth-btn:hover {
+  background-color: var(--auth-bg-alt);
+}
+
+.auth-btn:active {
+  box-shadow: 0 0 0 var(--auth-main);
+  transform: translate(3px, 3px);
+}
+
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@property --s-start-0 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 14.489998991212337%;
+}
+
+@property --s-end-0 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 72%;
+}
+
+@property --x-0 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 93%;
+}
+
+@property --c-0 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(212, 0%, 0%, 1);
+}
+
+@property --y-0 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 93%;
+}
+
+@property --c-1 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(212, 0%, 0%, 1);
+}
+
+@property --x-1 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 26%;
+}
+
+@property --y-1 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 9%;
+}
+
+@property --s-start-1 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+@property --s-end-1 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 45%;
+}
+
+@property --s-start-2 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 2.9253667596993065%;
+}
+
+@property --s-end-2 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 22.388851682060018%;
+}
+
+@property --x-2 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 15%;
+}
+
+@property --c-2 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(257, 91%, 27%, 0.35);
+}
+
+@property --y-2 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 79%;
+}
+
+@property --x-3 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 40%;
+}
+
+@property --y-3 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 104%;
+}
+
+@property --s-start-3 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 3.985353824694249%;
+}
+
+@property --s-end-3 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 47.580278608924694%;
+}
+
+@property --c-3 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(212, 100%, 50%, 0.5);
+}
+
+@property --s-start-4 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 2.391200382592061%;
+}
+
+@property --s-end-4 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 29.307684556768592%;
+}
+
+@property --y-4 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 60%;
+}
+
+@property --c-4 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(224, 72%, 36%, 1);
+}
+
+@property --x-4 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+@property --s-start-5 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 2.9253667596993065%;
+}
+
+@property --s-end-5 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 22.388851682060018%;
+}
+
+@property --y-5 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 37%;
+}
+
+@property --c-5 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(248, 52%, 24%, 1);
+}
+
+@property --x-5 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 92%;
+}
+
+@property --c-6 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(212, 100%, 50%, 0.19);
+}
+
+@property --y-6 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 16%;
+}
+
+@property --s-start-6 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 13.173642363290591%;
+}
+
+@property --s-end-6 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 31.747336520355095%;
+}
+
+@property --x-6 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 101%;
+}
+
+@property --s-start-7 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 1%;
+}
+
+@property --s-end-7 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 31%;
+}
+
+@property --y-7 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 13%;
+}
+
+@property --x-7 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 90%;
+}
+
+@property --c-7 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(227, 98%, 53%, 1);
+}
+
+@property --y-8 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 56%;
+}
+
+@property --c-8 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(166, 71%, 60%, 0.32);
+}
+
+@property --x-8 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 104%;
+}
+
+@property --s-start-8 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 3.985353824694249%;
+}
+
+@property --s-end-8 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 13.103042116379756%;
+}
+
+@property --y-9 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 19%;
+}
+
+@property --c-9 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: hsla(219, 83%, 23%, 0.18);
+}
+
+@property --x-9 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 97%;
+}
+
+@property --s-start-9 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 18.597054544690312%;
+}
+
+@property --s-end-9 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 31%;
+}
+
+@keyframes bg-drift {
+  0% {
+    --s-start-0: 14.489998991212337%;
+    --s-end-0: 72%;
+    --x-0: 93%;
+    --c-0: hsla(212, 0%, 0%, 1);
+    --y-0: 93%;
+    --c-1: hsla(212, 0%, 0%, 1);
+    --x-1: 26%;
+    --y-1: 9%;
+    --s-start-1: 0%;
+    --s-end-1: 45%;
+    --s-start-2: 2.9253667596993065%;
+    --s-end-2: 22.388851682060018%;
+    --x-2: 15%;
+    --c-2: hsla(257, 91%, 27%, 0.35);
+    --y-2: 79%;
+    --x-3: 40%;
+    --y-3: 104%;
+    --s-start-3: 3.985353824694249%;
+    --s-end-3: 47.580278608924694%;
+    --c-3: hsla(212, 100%, 50%, 0.5);
+    --s-start-4: 2.391200382592061%;
+    --s-end-4: 29.307684556768592%;
+    --y-4: 60%;
+    --c-4: hsla(224, 72%, 36%, 1);
+    --x-4: 0%;
+    --s-start-5: 2.9253667596993065%;
+    --s-end-5: 22.388851682060018%;
+    --y-5: 37%;
+    --c-5: hsla(248, 52%, 24%, 1);
+    --x-5: 92%;
+    --c-6: hsla(212, 100%, 50%, 0.19);
+    --y-6: 16%;
+    --s-start-6: 13.173642363290591%;
+    --s-end-6: 31.747336520355095%;
+    --x-6: 101%;
+    --s-start-7: 1%;
+    --s-end-7: 31%;
+    --y-7: 13%;
+    --x-7: 90%;
+    --c-7: hsla(227, 98%, 53%, 1);
+    --y-8: 56%;
+    --c-8: hsla(166, 71%, 60%, 0.32);
+    --x-8: 104%;
+    --s-start-8: 3.985353824694249%;
+    --s-end-8: 13.103042116379756%;
+    --y-9: 19%;
+    --c-9: hsla(219, 83%, 23%, 0.18);
+    --x-9: 97%;
+    --s-start-9: 18.597054544690312%;
+    --s-end-9: 31%;
+  }
+
+  100% {
+    --s-start-0: 2.391200382592061%;
+    --s-end-0: 43.902064173373226%;
+    --x-0: 7%;
+    --c-0: hsla(306, 0%, 0%, 1);
+    --y-0: 9%;
+    --c-1: hsla(306, 0%, 0%, 1);
+    --x-1: 96%;
+    --y-1: 93%;
+    --s-start-1: 9%;
+    --s-end-1: 54.805582404585024%;
+    --s-start-2: 3%;
+    --s-end-2: 26.722813338714598%;
+    --x-2: -2%;
+    --c-2: hsla(166, 72%, 60%, 1);
+    --y-2: 103%;
+    --x-3: 33%;
+    --y-3: 82%;
+    --s-start-3: 2.391200382592061%;
+    --s-end-3: 32.0689540200964%;
+    --c-3: hsla(180, 100%, 50%, 0.26);
+    --s-start-4: 4.40642490323111%;
+    --s-end-4: 37.23528104246256%;
+    --y-4: 81%;
+    --c-4: hsla(212, 88%, 26%, 0.58);
+    --x-4: 37%;
+    --s-start-5: 3%;
+    --s-end-5: 32.537089799783296%;
+    --y-5: 99%;
+    --c-5: hsla(271, 98%, 53%, 0.31);
+    --x-5: 54%;
+    --c-6: hsla(262, 100%, 50%, 0.15);
+    --y-6: 43%;
+    --s-start-6: 6%;
+    --s-end-6: 42.501105312974815%;
+    --x-6: 104%;
+    --s-start-7: 5%;
+    --s-end-7: 13.10107024898374%;
+    --y-7: -16%;
+    --x-7: 104%;
+    --c-7: hsla(298, 36%, 23%, 1);
+    --y-8: 30%;
+    --c-8: hsla(180, 100%, 50%, 0.11);
+    --x-8: 97%;
+    --s-start-8: 2.391200382592061%;
+    --s-end-8: 27.141813016850573%;
+    --y-9: 4%;
+    --c-9: hsla(219, 83%, 23%, 0.59);
+    --x-9: 78%;
+    --s-start-9: 5%;
+    --s-end-9: 21.32164536610654%;
+  }
+}
+
+body {
+  background-image:
+    radial-gradient(circle at var(--x-0) var(--y-0), var(--c-0) var(--s-start-0), transparent var(--s-end-0)),
+    radial-gradient(circle at var(--x-1) var(--y-1), var(--c-1) var(--s-start-1), transparent var(--s-end-1)),
+    radial-gradient(circle at var(--x-2) var(--y-2), var(--c-2) var(--s-start-2), transparent var(--s-end-2)),
+    radial-gradient(circle at var(--x-3) var(--y-3), var(--c-3) var(--s-start-3), transparent var(--s-end-3)),
+    radial-gradient(circle at var(--x-4) var(--y-4), var(--c-4) var(--s-start-4), transparent var(--s-end-4)),
+    radial-gradient(circle at var(--x-5) var(--y-5), var(--c-5) var(--s-start-5), transparent var(--s-end-5)),
+    radial-gradient(circle at var(--x-6) var(--y-6), var(--c-6) var(--s-start-6), transparent var(--s-end-6)),
+    radial-gradient(circle at var(--x-7) var(--y-7), var(--c-7) var(--s-start-7), transparent var(--s-end-7)),
+    radial-gradient(circle at var(--x-8) var(--y-8), var(--c-8) var(--s-start-8), transparent var(--s-end-8)),
+    radial-gradient(circle at var(--x-9) var(--y-9), var(--c-9) var(--s-start-9), transparent var(--s-end-9));
+  background-repeat: no-repeat;
+  animation: bg-drift 10s linear infinite alternate;
+}

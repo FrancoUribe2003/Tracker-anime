@@ -1,0 +1,96 @@
+---
+interface Props {
+  title: string;
+  href?: string | null;
+  coverImage?: string | null;
+  color?: string | null;
+  score?: number | null;
+  year?: number | null;
+  badge?: string | null;
+  badgeTone?: "emerald" | "violet" | "cyan";
+}
+
+const {
+  title,
+  href,
+  coverImage,
+  color,
+  score,
+  year,
+  badge = "Concluido",
+  badgeTone = "emerald",
+} = Astro.props;
+
+const fallbackBg = color || "#1E293B";
+const showScoreRow = score !== undefined || year != null;
+const formattedScore = typeof score === "number" && score > 0 ? `${score} ★` : "—";
+
+const badgeToneClass = {
+  emerald: "text-emerald border-emerald/30",
+  violet: "text-violet border-violet/30",
+  cyan: "text-cyan border-cyan/30",
+}[badgeTone];
+
+const dotToneClass = {
+  emerald: "bg-emerald",
+  violet: "bg-violet",
+  cyan: "bg-cyan",
+}[badgeTone];
+---
+
+<div class="group relative flex aspect-[2/3] flex-col justify-between overflow-hidden rounded-xl border border-white/5 shadow-lg shadow-black/30 transition-all duration-300 hover:border-violet sm:rounded-2xl">
+  <div
+    class="absolute inset-0 h-full w-full"
+    style={`background-color: ${fallbackBg}`}
+  >
+    {coverImage && (
+      <img
+        src={coverImage}
+        alt={title}
+        loading="lazy"
+        decoding="async"
+        width={300}
+        height={450}
+        class="h-full w-full object-cover object-center transition-opacity group-hover:opacity-90"
+      />
+    )}
+  </div>
+
+  {href && (
+    <a href={href} class="absolute inset-0 z-20" aria-label={title}></a>
+  )}
+
+  <div class="relative z-10 flex justify-end p-2 sm:p-3">
+    {badge && (
+      <span
+        class:list={[
+          "inline-flex items-center gap-1 rounded-full border bg-obsidian/60 px-2 py-0.5 text-[10px] font-semibold backdrop-blur-md shadow-md sm:text-[11px]",
+          badgeToneClass,
+        ]}
+      >
+        <span class:list={["h-1.5 w-1.5 rounded-full", dotToneClass]}></span>
+        {badge}
+      </span>
+    )}
+  </div>
+
+  <div class="pointer-events-none relative z-30 flex flex-col justify-end gap-2 bg-gradient-to-t from-obsidian via-obsidian/85 to-transparent p-2.5 pt-12 sm:p-3.5">
+    <h3
+      class="line-clamp-2 text-xs font-semibold leading-snug text-text transition-colors group-hover:text-violet sm:text-sm"
+      title={title}
+    >
+      {title}
+    </h3>
+
+    {showScoreRow && (
+      <div class="flex items-center justify-between border-t border-white/5 pt-1 text-[11px] sm:text-xs">
+        <span class="font-bold text-emerald">{formattedScore}</span>
+        {year && <span class="text-text-dim">{year}</span>}
+      </div>
+    )}
+
+    <div class="pointer-events-auto relative z-30">
+      <slot name="action" />
+    </div>
+  </div>
+</div>

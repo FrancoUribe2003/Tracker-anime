@@ -1,0 +1,57 @@
+---
+import BackButton from "./BackButton.tsx";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  count?: number;
+  countLabel?: string;
+  countTone?: "violet" | "cyan" | "emerald";
+  backFallback?: string;
+  backLabel?: string;
+}
+
+const {
+  title,
+  subtitle,
+  count,
+  countLabel,
+  countTone = "violet",
+  backFallback = "/",
+  backLabel = "Inicio",
+} = Astro.props;
+
+const TONE_STYLES = {
+  violet: { wrap: "border-violet/20 bg-violet/10 text-violet", dot: "bg-violet" },
+  cyan: { wrap: "border-cyan/20 bg-cyan/10 text-cyan", dot: "bg-cyan" },
+  emerald: { wrap: "border-emerald/20 bg-emerald/10 text-emerald", dot: "bg-emerald" },
+} as const;
+
+const tone = TONE_STYLES[countTone];
+---
+
+<div class="pt-4 sm:pt-5">
+  <BackButton client:load fallback={backFallback} label={backLabel} />
+</div>
+
+<header class="mt-4 flex flex-col gap-4 border-b border-white/5 pb-5 sm:mt-5 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">{title}</h1>
+    {subtitle && <p class="mt-1 text-sm text-text-muted">{subtitle}</p>}
+  </div>
+
+  <div class="flex flex-wrap items-center gap-3">
+    {typeof count === "number" && (
+      <span
+        class:list={[
+          "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-semibold",
+          tone.wrap,
+        ]}
+      >
+        <span class:list={["h-2 w-2 rounded-full", tone.dot]}></span>
+        {count} {countLabel ?? ""}
+      </span>
+    )}
+    <slot name="action" />
+  </div>
+</header>

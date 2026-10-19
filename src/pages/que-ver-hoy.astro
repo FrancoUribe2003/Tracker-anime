@@ -1,0 +1,18 @@
+---
+import Layout from "../layouts/Layout.astro";
+import QueVerHoy from "../components/QueVerHoy.tsx";
+import { getUserAnimeList } from "../lib/list";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const { counts } = await getUserAnimeList(user.id);
+---
+
+<Layout title="Qué ver hoy" activeNav="hoy" counts={counts}>
+  <QueVerHoy client:load viendo={counts.current} pendientes={counts.planning} />
+</Layout>

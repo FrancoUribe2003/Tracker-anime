@@ -1,0 +1,200 @@
+---
+import Layout from "../layouts/Layout.astro";
+import FilterPills from "../components/FilterPills.astro";
+import AnimeCard from "../components/AnimeCard.astro";
+import PageHeader from "../components/PageHeader.astro";
+import { getUserAnimeList, type AnimeListItem } from "../lib/list";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const { records, animeDataMap, counts } = await getUserAnimeList(user.id);
+
+const completedUserAnime = records.filter((a) => a.status === "COMPLETED");
+
+let completedEpisodes = 0;
+for (const item of completedUserAnime) {
+  const anime = animeDataMap.get(item.anilistId);
+  completedEpisodes += anime?.episodes ?? item.progress ?? 0;
+}
+
+const completedCount = completedUserAnime.length;
+
+const orden = Astro.url.searchParams.get("orden") || "";
+const paginaParam = Astro.url.searchParams.get("pagina");
+const perPage = 48;
+
+const completedItems: AnimeListItem[] = completedUserAnime.map((userRecord) => ({
+  userRecord,
+  animeData: animeDataMap.get(userRecord.anilistId),
+}));
+
+if (orden === "puntuacion") {
+  completedItems.sort((a, b) => {
+    const scoreA = a.userRecord.score ?? 0;
+    const scoreB = b.userRecord.score ?? 0;
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    const titleA = a.animeData?.title?.romaji || a.animeData?.title?.english || "";
+    const titleB = b.animeData?.title?.romaji || b.animeData?.title?.english || "";
+    return titleA.localeCompare(titleB);
+  });
+} else if (orden === "anio") {
+  completedItems.sort((a, b) => {
+    const yearA = a.animeData?.seasonYear ?? 0;
+    const yearB = b.animeData?.seasonYear ?? 0;
+    if (yearB !== yearA) return yearB - yearA;
+    const titleA = a.animeData?.title?.romaji || a.animeData?.title?.english || "";
+    const titleB = b.animeData?.title?.romaji || b.animeData?.title?.english || "";
+    return titleA.localeCompare(titleB);
+  });
+} else {
+  completedItems.sort((a, b) => {
+    const timeA = a.userRecord.updatedAt ? new Date(a.userRecord.updatedAt).getTime() : 0;
+    const timeB = b.userRecord.updatedAt ? new Date(b.userRecord.updatedAt).getTime() : 0;
+    return timeB - timeA;
+  });
+}
+
+const totalPages = Math.max(1, Math.ceil(completedItems.length / perPage));
+let currentPage = Math.max(1, parseInt(paginaParam || "1", 10) || 1);
+if (currentPage > totalPages) {
+  currentPage = totalPages;
+}
+
+const startIndex = (currentPage - 1) * perPage;
+const paginatedItems = completedItems.slice(startIndex, startIndex + perPage);
+
+const prevPageUrl =
+  currentPage > 1
+    ? `?pagina=${currentPage - 1}${orden ? `&orden=${orden}` : ""}`
+    : null;
+const nextPageUrl =
+  currentPage < totalPages
+    ? `?pagina=${currentPage + 1}${orden ? `&orden=${orden}` : ""}`
+    : null;
+---
+
+<Layout
+  title="Archivo Maestro"
+  activeNav="inicio"
+  counts={counts}
+>
+  <div class="pb-24">
+    <PageHeader
+      title="Completados"
+      subtitle="Tu archivo de animes terminados."
+      count={completedCount}
+      countLabel={completedCount === 1 ? "anime" : "animes"}
+      countTone="emerald"
+    >
+      <FilterPills slot="action" currentOrder={orden} />
+    </PageHeader>
+
+    <div class="mt-6">
+    <!-- 3. Grilla de catálogo o Estado vacío -->
+    {completedItems.length === 0 ? (
+      <section class="mx-auto my-8 max-w-xl rounded-2xl border border-white/5 bg-surface p-8 text-center shadow-xl sm:my-12 sm:p-12">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/5 bg-surface-2 text-violet shadow-inner">
+          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <h2 class="text-lg font-semibold text-text">Tu Archivo Maestro está vacío</h2>
+        <p class="mx-auto mt-2 max-w-sm text-sm text-text-muted">
+          Aún no tienes animes completados en tu registro. Busca un anime en la barra superior y márcalo como &ldquo;Completado&rdquo; cuando lo termines.
+        </p>
+        <p class="mt-6 text-xs text-text-dim">
+          Usa el buscador de la barra superior y elige el estado &ldquo;Completado&rdquo;.
+        </p>
+        <div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a
+            href="/pendientes"
+            class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-violet px-4 text-xs font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90"
+          >
+            Ir a Pendientes
+          </a>
+          <a
+            href="/viendo"
+            class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/5 bg-surface-2 px-4 text-xs font-medium text-text transition hover:bg-surface-2/80"
+          >
+            Ver animes en progreso
+          </a>
+        </div>
+      </section>
+    ) : (
+      <section class="space-y-8">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {paginatedItems.map((item) => {
+            const title =
+              item.animeData?.title?.romaji ||
+              item.animeData?.title?.english ||
+              `Anime #${item.userRecord.anilistId}`;
+            return (
+              <AnimeCard
+                title={title}
+                href={`/anime/${item.userRecord.anilistId}`}
+                coverImage={item.animeData?.coverImage?.large}
+                color={item.animeData?.coverImage?.color}
+                score={item.userRecord.score}
+                year={item.animeData?.seasonYear}
+              />
+            );
+          })}
+        </div>
+
+        {totalPages > 1 && (
+          <nav class="flex flex-wrap items-center justify-center gap-3 border-t border-white/5 pt-6">
+            {prevPageUrl ? (
+              <a
+                href={prevPageUrl}
+                class="inline-flex min-h-[44px] items-center rounded-lg border border-white/5 bg-surface-2 px-3.5 text-xs font-medium text-text transition hover:border-violet"
+              >
+                &larr; Anterior
+              </a>
+            ) : (
+              <span class="inline-flex min-h-[44px] cursor-not-allowed items-center rounded-lg border border-white/5 bg-surface-2/40 px-3.5 text-xs font-medium text-text-dim">
+                &larr; Anterior
+              </span>
+            )}
+
+            <span class="px-2 text-xs font-medium text-text-muted">
+              Página {currentPage} de {totalPages}
+            </span>
+
+            {nextPageUrl ? (
+              <a
+                href={nextPageUrl}
+                class="inline-flex min-h-[44px] items-center rounded-lg border border-white/5 bg-surface-2 px-3.5 text-xs font-medium text-text transition hover:border-violet"
+              >
+                Siguiente &rarr;
+              </a>
+            ) : (
+              <span class="inline-flex min-h-[44px] cursor-not-allowed items-center rounded-lg border border-white/5 bg-surface-2/40 px-3.5 text-xs font-medium text-text-dim">
+                Siguiente &rarr;
+              </span>
+            )}
+          </nav>
+        )}
+      </section>
+    )}
+    </div>
+
+    <!-- 4. Footer flotante -->
+    <div
+      class="pointer-events-none fixed left-1/2 z-40 -translate-x-1/2 px-4"
+      style="bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem)"
+    >
+      <div class="pointer-events-auto inline-flex max-w-[92vw] items-center gap-2.5 rounded-full border border-white/10 bg-surface/90 px-4 py-2.5 shadow-2xl shadow-obsidian backdrop-blur-md sm:px-5">
+        <span class="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald"></span>
+        <span class="truncate text-xs text-text-muted">Total de episodios vistos:</span>
+        <span class="shrink-0 bg-gradient-to-r from-emerald to-cyan bg-clip-text text-xs font-bold text-transparent sm:text-sm">
+          {completedEpisodes} eps
+        </span>
+      </div>
+    </div>
+  </div>
+</Layout>

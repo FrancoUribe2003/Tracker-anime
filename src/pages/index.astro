@@ -1,0 +1,75 @@
+---
+import Layout from "../layouts/Layout.astro";
+import StatCard from "../components/StatCard.astro";
+import MediaRow from "../components/MediaRow.tsx";
+import { getHomeStats, getUserAnimeRow } from "../lib/list";
+import { getCounts } from "../lib/counts";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const ROW_LIMIT = 12;
+
+const [stats, counts, completed, current, planning] = await Promise.all([
+  getHomeStats(user.id),
+  getCounts(user.id),
+  getUserAnimeRow(user.id, "COMPLETED", 0, ROW_LIMIT),
+  getUserAnimeRow(user.id, "CURRENT", 0, ROW_LIMIT),
+  getUserAnimeRow(user.id, "PLANNING", 0, ROW_LIMIT),
+]);
+---
+
+<Layout title="Inicio" activeNav="inicio" counts={counts}>
+  <div class="pb-24">
+    <section class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+      <StatCard
+        value={stats.completedCount}
+        label="Animes completados"
+        progress={stats.animesProgressPercent}
+      />
+      <StatCard
+        value={stats.completedEpisodes}
+        label="Episodios vistos"
+        progress={stats.episodesProgressPercent}
+      />
+      <StatCard
+        value={stats.averageScoreDisplay}
+        label="Puntuación media"
+        progress={stats.scoreProgressPercent}
+      />
+    </section>
+
+    <MediaRow
+      client:visible
+      status="COMPLETED"
+      title="Completados"
+      href="/completados"
+      total={counts.completed}
+      initialItems={completed}
+    />
+
+    <MediaRow
+      client:visible
+      status="CURRENT"
+      title="Viendo"
+      href="/viendo"
+      total={counts.current}
+      initialItems={current}
+      withDivider={true}
+    />
+
+    <MediaRow
+      client:visible
+      status="PLANNING"
+      title="Pendientes"
+      href="/pendientes"
+      total={counts.planning}
+      initialItems={planning}
+      withDivider={true}
+    />
+  </div>
+</Layout>

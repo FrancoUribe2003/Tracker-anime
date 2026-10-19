@@ -1,0 +1,72 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AnimeCard from "../components/AnimeCard.astro";
+import PageHeader from "../components/PageHeader.astro";
+import { getUserAnimeList, byUpdatedAtDesc, type AnimeListItem } from "../lib/list";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const { items, counts } = await getUserAnimeList(user.id);
+
+const pendingItems = items
+  .filter((item) => item.userRecord.status === "PLANNING")
+  .sort(byUpdatedAtDesc);
+
+function resolveTitle(item: AnimeListItem): string {
+  return (
+    item.animeData?.title?.romaji ||
+    item.animeData?.title?.english ||
+    `Anime #${item.userRecord.anilistId}`
+  );
+}
+---
+
+<Layout title="Pendientes" activeNav="inicio" counts={counts}>
+  <div class="pb-8">
+    <PageHeader
+      title="Lista de Pendientes"
+      subtitle="Animes que planeas ver más adelante o te han recomendado."
+      count={counts.planning}
+      countLabel={counts.planning === 1 ? "pendiente" : "pendientes"}
+      countTone="violet"
+    />
+
+    <div class="mt-6">
+      {pendingItems.length === 0 ? (
+      <div class="mx-auto mt-8 max-w-xl rounded-2xl border border-white/5 bg-surface p-8 text-center sm:p-12">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/5 bg-surface-2 text-violet">
+          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 class="text-lg font-semibold text-text">Tu lista de pendientes está vacía</h2>
+        <p class="mx-auto mt-2 max-w-sm text-sm text-text-muted">
+          Explora y guarda recomendaciones para no olvidar qué ver a continuación.
+        </p>
+        <p class="mt-6 text-xs text-text-dim">
+          Usa el buscador de la barra superior y elige el estado &ldquo;Pendiente&rdquo;.
+        </p>
+      </div>
+    ) : (
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {pendingItems.map((item) => (
+          <AnimeCard
+            title={resolveTitle(item)}
+            href={`/anime/${item.userRecord.anilistId}`}
+            coverImage={item.animeData?.coverImage?.large}
+            color={item.animeData?.coverImage?.color}
+            year={item.animeData?.seasonYear}
+            badge="Pendiente"
+            badgeTone="violet"
+          />
+        ))}
+      </div>
+      )}
+    </div>
+  </div>
+</Layout>

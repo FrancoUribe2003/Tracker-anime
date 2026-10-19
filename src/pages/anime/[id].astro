@@ -1,0 +1,583 @@
+---
+import { and, eq } from "drizzle-orm";
+import Layout from "../../layouts/Layout.astro";
+import { db } from "../../lib/db";
+import { userAnime } from "../../db/schema";
+import { getAnimeDetail, type AniListDetail } from "../../lib/anilist";
+import AnimeDetailPanel from "../../components/AnimeDetailPanel.tsx";
+import BackButton from "../../components/BackButton.tsx";
+import { ExternalLink } from "lucide-react";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const idParam = Astro.params.id ?? "";
+const isValidId = /^\d+$/.test(idParam);
+const animeId = isValidId ? Number.parseInt(idParam, 10) : NaN;
+
+let detail: AniListDetail | null = null;
+let fetchError = false;
+
+if (!isValidId || !Number.isInteger(animeId) || animeId <= 0) {
+  Astro.response.status = 404;
+} else {
+  const result = await getAnimeDetail(animeId);
+  detail = result.detail;
+  fetchError = result.error;
+  if (fetchError) {
+    Astro.response.status = 502;
+  } else if (!detail) {
+    Astro.response.status = 404;
+  }
+}
+
+const FORMAT_LABELS: Record<string, string> = {
+  TV: "Serie de TV",
+  TV_SHORT: "Corto de TV",
+  MOVIE: "Película",
+  SPECIAL: "Especial",
+  OVA: "OVA",
+  ONA: "ONA",
+  MUSIC: "Video musical",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  FINISHED: "Finalizado",
+  RELEASING: "En emisión",
+  NOT_YET_RELEASED: "Próximamente",
+  CANCELLED: "Cancelado",
+  HIATUS: "En pausa",
+};
+
+const SEASON_LABELS: Record<string, string> = {
+  WINTER: "Invierno",
+  SPRING: "Primavera",
+  SUMMER: "Verano",
+  FALL: "Otoño",
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  ORIGINAL: "Original",
+  MANGA: "Manga",
+  LIGHT_NOVEL: "Novela ligera",
+  VISUAL_NOVEL: "Novela visual",
+  VIDEO_GAME: "Videojuego",
+  NOVEL: "Novela",
+  ONE_SHOT: "One-shot",
+  DOUJINSHI: "Doujinshi",
+  ANIME: "Anime",
+  WEB_NOVEL: "Novela web",
+  MANHWA: "Manhwa",
+  MANHUA: "Manhua",
+  GAME: "Juego",
+  COMIC: "Cómic",
+  LIVE_ACTION: "Acción real",
+  MULTIMEDIA_PROJECT: "Proyecto multimedia",
+  PICTURE_BOOK: "Libro ilustrado",
+  OTHER: "Otro",
+};
+
+const RELATION_LABELS: Record<string, string> = {
+  ADAPTATION: "Adaptación",
+  PREQUEL: "Precuela",
+  SEQUEL: "Secuela",
+  PARENT: "Principal",
+  SIDE_STORY: "Historia paralela",
+  CHARACTER: "Personaje",
+  SUMMARY: "Resumen",
+  ALTERNATIVE: "Alternativa",
+  SPIN_OFF: "Spin-off",
+  SOURCE: "Fuente",
+  COMPILATION: "Recopilación",
+  CONTAINS: "Contiene",
+  OTHER: "Otro",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  MAIN: "Principal",
+  SUPPORTING: "Secundario",
+  BACKGROUND: "Fondo",
+};
+
+function formatFuzzyDate(d?: { year?: number | null; month?: number | null; day?: number | null } | null): string | null {
+  if (!d?.year) return null;
+  if (d.month && d.day) {
+    return `${String(d.day).padStart(2, "0")}/${String(d.month).padStart(2, "0")}/${d.year}`;
+  }
+  if (d.month) return `${String(d.month).padStart(2, "0")}/${d.year}`;
+  return String(d.year);
+}
+
+function formatAiringTimestamp(seconds?: number | null): string | null {
+  if (!seconds) return null;
+  const date = new Date(seconds * 1000);
+  return date.toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+let userRecord: typeof userAnime.$inferSelect | undefined;
+if (detail) {
+  try {
+    const rows = await db
+      .select()
+      .from(userAnime)
+      .where(and(eq(userAnime.userId, user.id), eq(userAnime.anilistId, detail.id)))
+      .limit(1);
+    userRecord = rows[0];
+  } catch (dbError: any) {
+    console.error("Error al consultar userAnime en /anime/[id]:", dbError?.cause ?? dbError);
+  }
+}
+
+const title = detail
+  ? detail.title.english || detail.title.romaji || detail.title.native || `Anime #${detail.id}`
+  : "Anime";
+const alternateTitle = detail
+  ? [detail.title.romaji, detail.title.native].find((t) => t && t !== title) ?? null
+  : null;
+const poster = detail?.coverImage?.extraLarge || detail?.coverImage?.large || null;
+const banner = detail?.bannerImage || null;
+const titleColor = detail?.coverImage?.color || "#1E293B";
+
+const synopsisParagraphs = (detail?.description ?? "")
+  .split(/<br\s*\/?>|\n/gi)
+  .map((line) => line.replace(/<[^>]+>/g, "").trim())
+  .filter(Boolean);
+
+const staffStudios =
+  detail?.studios?.edges
+    ?.filter((edge) => edge.isMain)
+    .map((edge) => edge.node?.name)
+    .filter((name): name is string => Boolean(name)) ?? [];
+
+const airingInfo = detail?.nextAiringEpisode;
+const emissionRange = detail
+  ? [formatFuzzyDate(detail.startDate), formatFuzzyDate(detail.endDate)]
+      .filter(Boolean)
+      .join(" — ") || null
+  : null;
+
+const infoRows = detail
+  ? ([
+      ["Formato", detail.format ? FORMAT_LABELS[detail.format] ?? detail.format : null],
+      ["Estado", detail.status ? STATUS_LABELS[detail.status] ?? detail.status : null],
+      ["Episodios", detail.episodes ? String(detail.episodes) : null],
+      ["Duración", detail.duration ? `${detail.duration} min` : null],
+      ["Temporada", detail.season ? `${SEASON_LABELS[detail.season] ?? detail.season}${detail.seasonYear ? ` ${detail.seasonYear}` : ""}` : null],
+      ["Emisión", emissionRange],
+      ["Estudio", staffStudios.length > 0 ? staffStudios.join(", ") : null],
+      ["Fuente", detail.source ? SOURCE_LABELS[detail.source] ?? detail.source : null],
+      ["Popularidad", detail.popularity ? detail.popularity.toLocaleString("es-AR") : null],
+      ["Favoritos", detail.favourites ? detail.favourites.toLocaleString("es-AR") : null],
+      ["Puntuación media", detail.averageScore ? `${detail.averageScore} / 100` : null],
+    ] as [string, string | null][]).filter((row): row is [string, string] => Boolean(row[1]))
+  : [];
+
+const genres = detail?.genres?.filter(Boolean) ?? [];
+const tags = (detail?.tags ?? [])
+  .filter((tag) => tag && tag.name && !tag.isMediaSpoiler)
+  .slice(0, 16);
+
+const characters = detail?.characters?.edges?.filter((edge) => edge.node?.name?.full) ?? [];
+
+const relations =
+  detail?.relations?.edges?.filter(
+    (edge) => edge.node?.type === "ANIME" && Number.isInteger(edge.node?.id)
+  ) ?? [];
+
+const recommendations =
+  detail?.recommendations?.nodes
+    ?.map((node) => node.mediaRecommendation)
+    .filter((media): media is NonNullable<typeof media> => Boolean(media?.id)) ?? [];
+
+const backFallback =
+  userRecord?.status === "CURRENT"
+    ? "/viendo"
+    : userRecord?.status === "PLANNING"
+      ? "/pendientes"
+      : userRecord?.status === "COMPLETED"
+        ? "/completados"
+        : "/viendo";
+
+const STREAMING_COLOR_FALLBACK = "#8B5CF6";
+const streamingLinks: { url: string; site: string; language: string | null; color: string | null }[] = [];
+const seenSites = new Set<string>();
+for (const link of detail?.externalLinks ?? []) {
+  if (!link || link.type !== "STREAMING" || link.isDisabled === true) continue;
+  if (!link.url || !link.site || seenSites.has(link.site)) continue;
+  seenSites.add(link.site);
+  streamingLinks.push({
+    url: link.url,
+    site: link.site,
+    language: link.language ?? null,
+    color: link.color ?? null,
+  });
+}
+---
+
+<Layout title={detail ? title : "Anime no encontrado"}>
+  <div class="flex flex-col gap-5 pt-4 pb-8 sm:gap-6 sm:pt-5">
+    {fetchError ? (
+      <section class="mx-auto max-w-xl rounded-2xl border border-white/5 bg-surface p-8 text-center shadow-xl sm:p-12">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/5 bg-surface-2 text-amber">
+          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h1 class="text-lg font-semibold text-text">No pudimos cargar este anime</h1>
+        <p class="mx-auto mt-2 max-w-sm text-sm text-text-muted">
+          Hubo un problema al conectar con AniList. Intenta nuevamente en unos minutos.
+        </p>
+        <a
+          href="/completados"
+          class="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-violet px-4 text-xs font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90"
+        >
+          Volver a mi lista
+        </a>
+      </section>
+    ) : !detail ? (
+      <section class="mx-auto max-w-xl rounded-2xl border border-white/5 bg-surface p-8 text-center shadow-xl sm:p-12">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/5 bg-surface-2 text-violet">
+          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h1 class="text-lg font-semibold text-text">Anime no encontrado</h1>
+        <p class="mx-auto mt-2 max-w-sm text-sm text-text-muted">
+          El anime que buscas no existe o no está disponible en AniList.
+        </p>
+        <a
+          href="/completados"
+          class="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-violet px-4 text-xs font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90"
+        >
+          Volver a mi lista
+        </a>
+      </section>
+    ) : (
+      <>
+        <BackButton client:load fallback={backFallback} />
+
+        <!-- 1. Cabecera -->
+        <section class="relative overflow-hidden rounded-2xl border border-white/5 bg-surface shadow-xl">
+          <div class="absolute inset-0" aria-hidden="true">
+            {banner ? (
+              <img src={banner} alt="" width={1920} height={1080} class="h-full w-full object-cover opacity-30" loading="lazy" decoding="async" />
+            ) : (
+              <div class="h-full w-full" style={`background-color: ${titleColor}`}></div>
+            )}
+            <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/90 to-obsidian/60"></div>
+          </div>
+
+          <div class="relative z-10 flex flex-col gap-5 p-5 sm:flex-row sm:p-7">
+            <div class="mx-auto w-40 shrink-0 sm:mx-0 sm:w-48">
+              <div
+                class="aspect-[2/3] overflow-hidden rounded-xl border border-white/10 shadow-lg shadow-black/40"
+                style={`background-color: ${titleColor}`}
+              >
+                {poster && (
+                  <img
+                    src={poster}
+                    alt={title}
+                    loading="eager"
+                    decoding="async"
+                    width={384}
+                    height={576}
+                    class="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div class="flex min-w-0 flex-1 flex-col justify-center gap-3">
+              <div class="flex flex-wrap items-center gap-2">
+                {detail.format && (
+                  <span class="rounded-full border border-white/10 bg-obsidian/50 px-2.5 py-0.5 text-[11px] font-semibold text-text-muted backdrop-blur-md">
+                    {FORMAT_LABELS[detail.format] ?? detail.format}
+                  </span>
+                )}
+                {detail.status && (
+                  <span class="rounded-full border border-cyan/30 bg-cyan/10 px-2.5 py-0.5 text-[11px] font-semibold text-cyan">
+                    {STATUS_LABELS[detail.status] ?? detail.status}
+                  </span>
+                )}
+              </div>
+
+              <h1 class="text-2xl font-bold tracking-tight text-text sm:text-3xl">{title}</h1>
+              {alternateTitle && <p class="text-sm text-text-muted">{alternateTitle}</p>}
+
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-text-muted">
+                {detail.averageScore && (
+                  <span class="inline-flex items-center gap-1 font-semibold text-emerald">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2l2.9 6.26L21 9.27l-4.5 4.38L17.8 21 12 17.27 6.2 21l1.3-7.35L3 9.27l6.1-1.01L12 2z" />
+                    </svg>
+                    {detail.averageScore} / 100
+                  </span>
+                )}
+                {detail.seasonYear && <span>{detail.seasonYear}</span>}
+                {detail.episodes && <span>{detail.episodes} episodios</span>}
+                {detail.duration && <span>{detail.duration} min</span>}
+                {detail.popularity && <span>{detail.popularity.toLocaleString("es-AR")} en listas</span>}
+              </div>
+
+              {airingInfo?.episode && (
+                <p class="text-xs text-text-dim">
+                  Próximo episodio: <span class="font-semibold text-text-muted">Ep. {airingInfo.episode}</span>
+                  {formatAiringTimestamp(airingInfo.airingAt) && <> &bull; {formatAiringTimestamp(airingInfo.airingAt)}</>}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Panel de lista del usuario -->
+        <AnimeDetailPanel
+          client:load
+          anilistId={detail.id}
+          initialStatus={userRecord?.status ?? null}
+          initialProgress={userRecord?.progress ?? 0}
+          initialScore={userRecord?.score ?? null}
+          initialTopPosition={userRecord?.topPosition ?? null}
+          episodes={detail.episodes ?? null}
+          animeStatus={detail.status ?? null}
+          nextAiringEpisode={detail.nextAiringEpisode?.episode ?? null}
+        />
+
+        {streamingLinks.length > 0 && (
+          <section class="rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Dónde verlo</h2>
+            <div class="flex flex-wrap gap-2">
+              {streamingLinks.map((link) => (
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/10 bg-surface-2/60 px-3.5 text-sm font-medium text-text transition hover:border-violet/50 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-violet"
+                >
+                  <span
+                    class="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={`background-color: ${link.color || STREAMING_COLOR_FALLBACK}`}
+                  ></span>
+                  <span>{link.site}</span>
+                  {link.language && <span class="text-[11px] font-normal text-text-dim">{link.language}</span>}
+                  <ExternalLink className="h-4 w-4 shrink-0 text-text-dim" aria-hidden="true" />
+                </a>
+              ))}
+            </div>
+            <p class="mt-3 text-xs text-text-dim">Datos de AniList. La disponibilidad puede variar según tu país.</p>
+          </section>
+        )}
+
+        <div class="grid gap-5 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          <div class="flex flex-col gap-5 sm:gap-6">
+            <!-- 3. Sinopsis -->
+            {synopsisParagraphs.length > 0 && (
+              <section class="rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Sinopsis</h2>
+                <div class="space-y-3 text-sm leading-relaxed text-text-muted">
+                  {synopsisParagraphs.map((paragraph) => <p>{paragraph}</p>)}
+                </div>
+              </section>
+            )}
+
+            <!-- 4. Información -->
+            {infoRows.length > 0 && (
+              <section class="rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Información</h2>
+                <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                  {infoRows.map(([label, value]) => (
+                    <div class="flex items-baseline justify-between gap-4 border-b border-white/5 pb-2 text-sm">
+                      <dt class="shrink-0 text-text-dim">{label}</dt>
+                      <dd class="text-right font-medium text-text">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+
+            <!-- 5. Géneros y tags -->
+            {(genres.length > 0 || tags.length > 0) && (
+              <section class="space-y-4 rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
+                {genres.length > 0 && (
+                  <div>
+                    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Géneros</h2>
+                    <div class="flex flex-wrap gap-2">
+                      {genres.map((genre) => (
+                        <span class="rounded-full border border-violet/30 bg-violet/10 px-3 py-1 text-xs font-medium text-violet">
+                          {genre}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {tags.length > 0 && (
+                  <div>
+                    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Tags</h2>
+                    <div class="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <span class="inline-flex items-center gap-1.5 rounded-full border border-white/5 bg-surface-2 px-3 py-1 text-xs text-text-muted">
+                          {tag.name}
+                          {typeof tag.rank === "number" && <span class="text-text-dim">{tag.rank}%</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            <!-- 6. Tráiler -->
+            {detail.trailer?.site === "youtube" && detail.trailer.id && (
+              <section class="rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Tráiler</h2>
+                <div class="aspect-video w-full overflow-hidden rounded-xl border border-white/5 bg-obsidian">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${detail.trailer.id}`}
+                    title={`Tráiler de ${title}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    loading="lazy"
+                    class="h-full w-full"
+                  ></iframe>
+                </div>
+              </section>
+            )}
+
+            <!-- 7. Personajes -->
+            {characters.length > 0 && (
+              <section class="rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Personajes</h2>
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                  {characters.map((edge) => {
+                    const voiceActor = edge.voiceActors?.[0];
+                    return (
+                      <div class="overflow-hidden rounded-xl border border-white/5 bg-surface-2">
+                        <div class="flex gap-2">
+                          <div class="aspect-[2/3] w-1/2 shrink-0 bg-obsidian">
+                            {edge.node?.image?.large && (
+                              <img
+                                src={edge.node.image.large}
+                                alt={edge.node?.name?.full ?? "Personaje"}
+                                loading="lazy"
+                                decoding="async"
+                                class="h-full w-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <div class="aspect-[2/3] w-1/2 shrink-0 bg-obsidian">
+                            {voiceActor?.image?.large && (
+                              <img
+                                src={voiceActor.image.large}
+                                alt={voiceActor.name?.full ?? "Seiyuu"}
+                                loading="lazy"
+                                decoding="async"
+                                class="h-full w-full object-cover"
+                              />
+                            )}
+                          </div>
+                        </div>
+                        <div class="space-y-0.5 p-2">
+                          <p class="line-clamp-1 text-xs font-semibold text-text" title={edge.node?.name?.full ?? ""}>
+                            {edge.node?.name?.full}
+                          </p>
+                          <p class="text-[10px] uppercase tracking-wide text-text-dim">
+                            {edge.role ? ROLE_LABELS[edge.role] ?? edge.role : ""}
+                          </p>
+                          {voiceActor?.name?.full && (
+                            <p class="line-clamp-1 text-[10px] text-text-muted" title={voiceActor.name.full}>
+                              {voiceActor.name.full}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </div>
+
+          <aside class="flex flex-col gap-5 sm:gap-6">
+            <!-- 8a. Relacionados -->
+            {relations.length > 0 && (
+              <section class="rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Relacionados</h2>
+                <div class="space-y-2.5">
+                  {relations.map((edge) => (
+                    <a
+                      href={`/anime/${edge.node?.id}`}
+                      class="flex items-center gap-3 rounded-xl border border-white/5 bg-surface-2 p-2 transition hover:border-violet"
+                    >
+                      <div class="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-obsidian">
+                        {edge.node?.coverImage?.large && (
+                          <img
+                            src={edge.node.coverImage.large}
+                            alt={edge.node?.title?.romaji ?? ""}
+                            loading="lazy"
+                            decoding="async"
+                            width={64}
+                            height={96}
+                            class="h-full w-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-[10px] font-semibold uppercase tracking-wider text-violet">
+                          {edge.relationType ? RELATION_LABELS[edge.relationType] ?? edge.relationType : ""}
+                        </p>
+                        <p class="line-clamp-2 text-xs font-medium leading-snug text-text">
+                          {edge.node?.title?.english || edge.node?.title?.romaji || "Sin título"}
+                        </p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <!-- 8b. Recomendaciones -->
+            {recommendations.length > 0 && (
+              <section class="rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">Recomendados</h2>
+                <div class="grid grid-cols-2 gap-3">
+                  {recommendations.map((media) => (
+                    <a href={`/anime/${media.id}`} class="group block">
+                      <div class="aspect-[2/3] overflow-hidden rounded-xl border border-white/5 bg-obsidian transition group-hover:border-violet">
+                        {media.coverImage?.large && (
+                          <img
+                            src={media.coverImage.large}
+                            alt={media.title?.romaji ?? ""}
+                            loading="lazy"
+                            decoding="async"
+                            width={300}
+                            height={450}
+                            class="h-full w-full object-cover transition group-hover:opacity-90"
+                          />
+                        )}
+                      </div>
+                      <p class="mt-1.5 line-clamp-2 text-[11px] font-medium leading-snug text-text">
+                        {media.title?.english || media.title?.romaji || "Sin título"}
+                      </p>
+                      {media.averageScore && (
+                        <p class="text-[10px] font-semibold text-emerald">{media.averageScore} ★</p>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </section>
+            )}
+          </aside>
+        </div>
+      </>
+    )}
+  </div>
+</Layout>

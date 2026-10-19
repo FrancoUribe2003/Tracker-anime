@@ -1,0 +1,57 @@
+---
+import Layout from "../layouts/Layout.astro";
+import VistaViendo, { type ViendoItem } from "../components/VistaViendo.tsx";
+import PageHeader from "../components/PageHeader.astro";
+import { getUserAnimeList } from "../lib/list";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const { items, counts } = await getUserAnimeList(user.id);
+
+const current = items
+  .filter((item) => item.userRecord.status === "CURRENT")
+  .sort((a, b) => {
+    const timeA = a.userRecord.updatedAt ? new Date(a.userRecord.updatedAt).getTime() : 0;
+    const timeB = b.userRecord.updatedAt ? new Date(b.userRecord.updatedAt).getTime() : 0;
+    if (timeB !== timeA) return timeB - timeA;
+    return b.userRecord.anilistId - a.userRecord.anilistId;
+  });
+
+const viendoItems: ViendoItem[] = current.map((item) => ({
+  anilistId: item.userRecord.anilistId,
+  progress: item.userRecord.progress ?? 0,
+  episodes: item.animeData?.episodes ?? null,
+  status: item.animeData?.status ?? null,
+  nextAiringEpisode: item.animeData?.nextAiringEpisode?.episode ?? null,
+  updatedAt: item.userRecord.updatedAt
+    ? new Date(item.userRecord.updatedAt).toISOString()
+    : new Date(0).toISOString(),
+  title:
+    item.animeData?.title?.romaji ||
+    item.animeData?.title?.english ||
+    `Anime #${item.userRecord.anilistId}`,
+  coverImage: item.animeData?.coverImage?.large ?? null,
+  color: item.animeData?.coverImage?.color ?? null,
+  bannerImage: item.animeData?.bannerImage ?? null,
+}));
+---
+
+<Layout title="Viendo Actualmente" activeNav="inicio" counts={counts}>
+  <div class="pb-8">
+    <PageHeader
+      title="Viendo Actualmente"
+      subtitle="Series en emisión o episodios pendientes por ver."
+      count={viendoItems.length}
+      countLabel="en progreso"
+      countTone="cyan"
+    />
+    <div class="mt-6">
+      <VistaViendo client:load items={viendoItems} />
+    </div>
+  </div>
+</Layout>

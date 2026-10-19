@@ -1,0 +1,41 @@
+---
+interface Props {
+  currentOrder?: string;
+}
+
+const { currentOrder } = Astro.props;
+
+const filters = [
+  { id: "puntuacion", label: "Puntuación" },
+  { id: "anio", label: "Año" },
+];
+---
+
+<div class="-mx-4 flex items-center gap-2 overflow-x-auto px-4 no-scrollbar sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+  <span class="mr-1 shrink-0 text-xs text-text-muted">Ordenar por:</span>
+  {filters.map((filter) => {
+    const isActive = currentOrder === filter.id;
+    return (
+      <a
+        href={`?orden=${filter.id}`}
+        class:list={[
+          "inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap px-3.5 rounded-full text-xs font-medium transition-all backdrop-blur-md border",
+          isActive
+            ? "bg-surface-2/80 text-text border-violet shadow-sm shadow-violet/20"
+            : "bg-surface/60 text-text-muted hover:text-text hover:bg-surface-2/40 border-white/5",
+        ]}
+      >
+        {filter.label}
+      </a>
+    );
+  })}
+  {currentOrder && (
+    <a
+      href="?"
+      class="ml-1 inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap text-xs text-text-dim underline underline-offset-4 transition hover:text-text-muted"
+      title="Restablecer orden"
+    >
+      Limpiar
+    </a>
+  )}
+</div>

@@ -1,0 +1,20 @@
+---
+import AuthCard from "../components/AuthCard";
+import { SITE_NAME } from "../lib/site";
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Crear Cuenta - {SITE_NAME}</title>
+  </head>
+  <body class="flex min-h-dvh items-center justify-center p-4 font-sans text-text antialiased selection:bg-violet selection:text-white">
+    <div class="w-full max-w-md">
+      <AuthCard client:load initial="signup" />
+    </div>
+  </body>
+</html>
