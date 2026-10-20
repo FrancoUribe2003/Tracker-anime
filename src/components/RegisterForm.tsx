@@ -1,31 +1,35 @@
 import React, { useState } from "react";
 import { z } from "zod";
 import { authClient } from "../lib/auth-client";
+import { authErrorMessage } from "../lib/auth-error";
+import type { Dictionary } from "../i18n";
 
-const registerSchema = z
-  .object({
-    name: z
-      .string()
-      .min(2, "El nombre debe tener al menos 2 caracteres"),
-    email: z
-      .string()
-      .min(1, "El correo electrónico es obligatorio")
-      .email("Ingresa un correo electrónico válido"),
-    password: z
-      .string()
-      .min(8, "La contraseña debe tener al menos 8 caracteres"),
-    confirmPassword: z
-      .string()
-      .min(1, "Debes confirmar tu contraseña"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Las contraseñas no coinciden",
-    path: ["confirmPassword"],
-  });
+interface RegisterFormData {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+function registerSchema(dict: Dictionary["auth"]) {
+  return z
+    .object({
+      name: z.string().min(2, dict.nameMin),
+      email: z.string().min(1, dict.emailRequired).email(dict.emailInvalid),
+      password: z.string().min(8, dict.passwordMin),
+      confirmPassword: z.string().min(1, dict.confirmPasswordRequired),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: dict.passwordsDontMatch,
+      path: ["confirmPassword"],
+    });
+}
 
-export default function RegisterForm() {
+interface RegisterFormProps {
+  dict: Dictionary["auth"];
+}
+
+export default function RegisterForm({ dict }: RegisterFormProps) {
   const [formData, setFormData] = useState<RegisterFormData>({
     name: "",
     email: "",
@@ -49,7 +53,7 @@ export default function RegisterForm() {
     e.preventDefault();
     setGeneralError(null);
 
-    const validation = registerSchema.safeParse(formData);
+    const validation = registerSchema(dict).safeParse(formData);
     if (!validation.success) {
       const errors: Partial<Record<keyof RegisterFormData, string>> = {};
       validation.error.issues.forEach((err) => {
@@ -71,16 +75,14 @@ export default function RegisterForm() {
       });
 
       if (error) {
-        setGeneralError(
-          error.message || "Error al crear la cuenta. Es posible que el correo ya esté registrado."
-        );
+        setGeneralError(authErrorMessage(error, dict, dict.registerFailed));
         setIsLoading(false);
         return;
       }
 
       window.location.href = "/";
     } catch {
-      setGeneralError("Ocurrió un error inesperado al conectar con el servidor.");
+      setGeneralError(dict.serverError);
       setIsLoading(false);
     }
   };
@@ -102,10 +104,10 @@ export default function RegisterForm() {
             name="name"
             type="text"
             autoComplete="name"
-            aria-label="Nombre de usuario"
+            aria-label={dict.name}
             value={formData.name}
             onChange={handleChange}
-            placeholder="Nombre de usuario"
+            placeholder={dict.name}
             disabled={isLoading}
             className={`auth-input ${fieldErrors.name ? "has-error" : ""}`}
           />
@@ -119,10 +121,10 @@ export default function RegisterForm() {
             name="email"
             type="email"
             autoComplete="email"
-            aria-label="Correo electrónico"
+            aria-label={dict.email}
             value={formData.email}
             onChange={handleChange}
-            placeholder="Correo electrónico"
+            placeholder={dict.email}
             disabled={isLoading}
             className={`auth-input ${fieldErrors.email ? "has-error" : ""}`}
           />
@@ -136,10 +138,10 @@ export default function RegisterForm() {
             name="password"
             type="password"
             autoComplete="new-password"
-            aria-label="Contraseña (mínimo 8 caracteres)"
+            aria-label={dict.password}
             value={formData.password}
             onChange={handleChange}
-            placeholder="Contraseña"
+            placeholder={dict.password}
             disabled={isLoading}
             className={`auth-input ${fieldErrors.password ? "has-error" : ""}`}
           />
@@ -153,10 +155,10 @@ export default function RegisterForm() {
             name="confirmPassword"
             type="password"
             autoComplete="new-password"
-            aria-label="Confirmar contraseña"
+            aria-label={dict.confirmPassword}
             value={formData.confirmPassword}
             onChange={handleChange}
-            placeholder="Confirmar contraseña"
+            placeholder={dict.confirmPassword}
             disabled={isLoading}
             className={`auth-input ${fieldErrors.confirmPassword ? "has-error" : ""}`}
           />
@@ -172,10 +174,10 @@ export default function RegisterForm() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <span>Creando...</span>
+              <span>{dict.registerLoading}</span>
             </>
           ) : (
-            <span>Registrarse</span>
+            <span>{dict.registerSubmit}</span>
           )}
         </button>
       </form>

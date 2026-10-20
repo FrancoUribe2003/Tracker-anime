@@ -4,6 +4,8 @@ import { Toast, useToast } from "./Toast";
 import type { UserCounts } from "../lib/counts";
 import { syncCountsFromResponse } from "../lib/counts-client";
 import { getKnownTotal, getMaxEpisode, isAiring } from "../lib/episodes";
+import { apiErrorMessage } from "../lib/api-errors";
+import { t, type Dictionary } from "../i18n";
 
 interface ProgressControlProps {
   anilistId: number;
@@ -13,6 +15,8 @@ interface ProgressControlProps {
   nextAiringEpisode?: number | null;
   completed?: boolean;
   variant?: "full" | "mini";
+  dict: Dictionary["progress"];
+  errors: Dictionary["errors"];
   onProgressChange?: (progress: number) => void;
   onStatusChange?: (status: string) => void;
   onSaveSuccess?: () => void;
@@ -37,6 +41,8 @@ export default function ProgressControl({
   nextAiringEpisode = null,
   completed = false,
   variant = "full",
+  dict,
+  errors,
   onProgressChange,
   onStatusChange,
   onSaveSuccess,
@@ -91,7 +97,8 @@ export default function ProgressControl({
         body: JSON.stringify({ anilistId, progress: target }),
       });
       const data: ProgressResponse = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "No se pudo guardar el progreso");
+      if (!response.ok)
+        throw new Error(apiErrorMessage(data.error, dict.saveError, errors));
       if (requestId !== requestIdRef.current) return;
 
       if (typeof data.progress === "number") {
@@ -108,18 +115,18 @@ export default function ProgressControl({
 
       if (data.status === "COMPLETED") {
         onStatusChange?.("COMPLETED");
-        showToast("Marcado como completado");
+        showToast(dict.markedCompleted);
       }
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       setValueSync(committedRef.current);
       onProgressChange?.(committedRef.current);
       onSaveError?.();
-      showToast(err instanceof Error ? err.message : "No se pudo guardar el progreso");
+      showToast(err instanceof Error ? err.message : dict.saveError);
     } finally {
       if (requestId === requestIdRef.current) setIsSaving(false);
     }
-  }, [anilistId, onProgressChange, onSaveError, onSaveSuccess, onStatusChange, setValueSync, showToast]);
+  }, [anilistId, dict, errors, onProgressChange, onSaveError, onSaveSuccess, onStatusChange, setValueSync, showToast]);
 
   const scheduleSave = useCallback(
     (next: number) => {
@@ -193,7 +200,8 @@ export default function ProgressControl({
         body: JSON.stringify({ anilistId, status: "COMPLETED", progress: target }),
       });
       const data: ProgressResponse = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "No se pudo marcar como completado");
+      if (!response.ok)
+        throw new Error(apiErrorMessage(data.error, dict.completeError, errors));
       if (requestId !== requestIdRef.current) return;
 
       if (typeof data.progress === "number") {
@@ -204,7 +212,7 @@ export default function ProgressControl({
         committedRef.current = target;
       }
 
-      showToast("Marcado como completado");
+      showToast(dict.markedCompleted);
       onStatusChange?.("COMPLETED");
       onSaveSuccess?.();
       syncCountsFromResponse(data);
@@ -213,14 +221,14 @@ export default function ProgressControl({
       setValueSync(prevValue);
       onProgressChange?.(prevValue);
       onSaveError?.();
-      showToast(err instanceof Error ? err.message : "No se pudo marcar como completado");
+      showToast(err instanceof Error ? err.message : dict.completeError);
     } finally {
       if (requestId === requestIdRef.current) setIsSaving(false);
     }
   };
 
   const percent = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  const label = airing ? `Ep. ${value} / ${max} emitidos` : `Ep. ${value} / ${max}`;
+  const label = t(airing ? dict.labelAiring : dict.label, { value, max });
   const atMax = value >= max;
   const isCompleted = completed || (finished && knownTotal != null && value >= knownTotal);
 
@@ -231,14 +239,14 @@ export default function ProgressControl({
         onClick={() => commit(valueRef.current + 1)}
         disabled={isSaving || atMax}
         className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-lg border border-cyan/30 bg-cyan/15 px-3 text-xs font-semibold text-cyan transition hover:bg-cyan/25 disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label={atMax ? "Completado" : "Sumar un episodio"}
+        aria-label={atMax ? dict.completed : dict.addOneAria}
       >
         {isSaving ? (
           <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
         ) : (
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
         )}
-        <span>{atMax ? "Completado" : "+1"}</span>
+        <span>{atMax ? dict.completed : dict.addOneShort}</span>
       </button>
     );
   }
@@ -261,7 +269,7 @@ export default function ProgressControl({
         value={value}
         onInput={handleSliderInput}
         onChange={handleSliderChange}
-        aria-label="Progreso de episodios"
+        aria-label={dict.aria}
         className="progress-slider block w-full"
         style={{ "--pct": `${percent}%` } as React.CSSProperties}
       />
@@ -274,7 +282,7 @@ export default function ProgressControl({
           className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-cyan px-4 text-sm font-semibold text-obsidian transition hover:bg-cyan/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          <span>+1 episodio</span>
+          <span>{dict.addOne}</span>
         </button>
         <button
           type="button"
@@ -283,7 +291,7 @@ export default function ProgressControl({
           className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-surface-2 px-4 text-sm font-medium text-text transition hover:bg-surface-2/80 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Check className="h-4 w-4" aria-hidden="true" />
-          <span>{isCompleted ? "Completado" : "Marcar completado"}</span>
+          <span>{isCompleted ? dict.completed : dict.markCompleted}</span>
         </button>
       </div>
 

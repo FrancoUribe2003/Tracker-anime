@@ -9,9 +9,7 @@ import { getAnimeDetail } from "../../lib/anilist";
 export const prerender = false;
 
 const querySchema = z.object({
-  status: z.enum(["CURRENT", "PLANNING"], {
-    errorMap: () => ({ message: "El estado debe ser CURRENT o PLANNING" }),
-  }),
+  status: z.enum(["CURRENT", "PLANNING"]),
   exclude: z.coerce.number().int().positive().optional(),
 });
 
@@ -21,7 +19,7 @@ export const GET: APIRoute = async (ctx) => {
       ctx.locals.user ?? (await auth.api.getSession({ headers: ctx.request.headers }))?.user;
 
     if (!sessionUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       });
@@ -34,10 +32,10 @@ export const GET: APIRoute = async (ctx) => {
     });
 
     if (!validation.success) {
-      return new Response(
-        JSON.stringify({ error: validation.error.errors[0]?.message ?? "Parámetros inválidos" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "invalid_input" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const { status, exclude } = validation.data;
@@ -58,14 +56,14 @@ export const GET: APIRoute = async (ctx) => {
       row = rows[0];
     } catch (dbError: any) {
       console.error("Error al seleccionar anime aleatorio:", dbError?.cause ?? dbError);
-      return new Response(JSON.stringify({ error: "Error al consultar tu lista" }), {
+      return new Response(JSON.stringify({ error: "server_error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
 
     if (!row) {
-      return new Response(JSON.stringify({ error: "No hay animes disponibles" }), {
+      return new Response(JSON.stringify({ error: "no_anime_available" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
@@ -94,7 +92,7 @@ export const GET: APIRoute = async (ctx) => {
     );
   } catch (error: any) {
     console.error("Error no controlado en GET /api/random:", error?.cause ?? error);
-    return new Response(JSON.stringify({ error: "Error interno al obtener un anime" }), {
+    return new Response(JSON.stringify({ error: "server_error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

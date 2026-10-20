@@ -15,12 +15,12 @@ export const GET: APIRoute = async (ctx) => {
   try {
     const user =
       ctx.locals.user ?? (await auth.api.getSession({ headers: ctx.request.headers }))?.user ?? null;
-    if (!user) return json({ error: "No autorizado" }, 401);
+    if (!user) return json({ error: "unauthorized" }, 401);
 
     const counts = await getCounts(user.id);
     return json(counts);
   } catch (error: any) {
     console.error("Error no controlado en GET /api/counts:", error?.cause ?? error);
-    return json({ error: "Error interno al obtener los contadores" }, 500);
+    return json({ error: "server_error" }, 500);
   }
 };

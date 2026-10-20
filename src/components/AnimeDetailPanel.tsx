@@ -3,6 +3,8 @@ import { LoaderCircle, Star, Trash2, X } from "lucide-react";
 import ProgressControl from "./ProgressControl";
 import type { UserCounts } from "../lib/counts";
 import { syncCountsFromResponse } from "../lib/counts-client";
+import { apiErrorMessage } from "../lib/api-errors";
+import { t, type Dictionary } from "../i18n";
 
 interface AnimeDetailPanelProps {
   anilistId: number;
@@ -13,12 +15,16 @@ interface AnimeDetailPanelProps {
   episodes?: number | null;
   animeStatus?: string | null;
   nextAiringEpisode?: number | null;
+  dict: Dictionary["detail"];
+  statusDict: Dictionary["status"];
+  progressDict: Dictionary["progress"];
+  errors: Dictionary["errors"];
 }
 
 const STATUS_OPTIONS = [
-  { value: "CURRENT", label: "Viendo", activeClass: "bg-cyan/15 text-cyan border-cyan/40" },
-  { value: "PLANNING", label: "Pendiente", activeClass: "bg-violet/15 text-violet border-violet/40" },
-  { value: "COMPLETED", label: "Completado", activeClass: "bg-emerald/15 text-emerald border-emerald/40" },
+  { value: "CURRENT", activeClass: "bg-cyan/15 text-cyan border-cyan/40" },
+  { value: "PLANNING", activeClass: "bg-violet/15 text-violet border-violet/40" },
+  { value: "COMPLETED", activeClass: "bg-emerald/15 text-emerald border-emerald/40" },
 ] as const;
 
 interface ApiResponse {
@@ -40,7 +46,17 @@ export default function AnimeDetailPanel({
   episodes = null,
   animeStatus = null,
   nextAiringEpisode = null,
+  dict,
+  statusDict,
+  progressDict,
+  errors,
 }: AnimeDetailPanelProps) {
+  const statusLabels: Record<string, string> = {
+    CURRENT: statusDict.current,
+    PLANNING: statusDict.planning,
+    COMPLETED: statusDict.completed,
+  };
+
   const [status, setStatus] = useState<string | null>(initialStatus);
   const [progress, setProgress] = useState(initialProgress);
   const [score, setScore] = useState<number | null>(initialScore);
@@ -56,7 +72,7 @@ export default function AnimeDetailPanel({
     });
     const data: ApiResponse = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(data.error ?? "No se pudo actualizar tu lista");
+      throw new Error(apiErrorMessage(data.error, dict.errorUpdate, errors));
     }
     return data;
   }
@@ -86,7 +102,7 @@ export default function AnimeDetailPanel({
     } catch (err) {
       setStatus(prevStatus);
       setProgress(prevProgress);
-      setError(err instanceof Error ? err.message : "Error al actualizar tu lista");
+      setError(err instanceof Error ? err.message : dict.errorUpdate);
     } finally {
       setIsPending(false);
     }
@@ -118,7 +134,7 @@ export default function AnimeDetailPanel({
       }
     } catch (err) {
       setScore(prevScore);
-      setError(err instanceof Error ? err.message : "Error al guardar la puntuación");
+      setError(err instanceof Error ? err.message : dict.errorScore);
     } finally {
       setIsPending(false);
     }
@@ -147,7 +163,7 @@ export default function AnimeDetailPanel({
       setProgress(prevProgress);
       setScore(prevScore);
       setTopPosition(prevTopPosition);
-      setError(err instanceof Error ? err.message : "Error al eliminar de tu lista");
+      setError(err instanceof Error ? err.message : dict.errorRemove);
     } finally {
       setIsPending(false);
     }
@@ -164,7 +180,7 @@ export default function AnimeDetailPanel({
       if (typeof data.position === "number") setTopPosition(data.position);
       syncCountsFromResponse(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al agregar a tu Top");
+      setError(err instanceof Error ? err.message : dict.errorAddTop);
     } finally {
       setIsPending(false);
     }
@@ -184,7 +200,7 @@ export default function AnimeDetailPanel({
       syncCountsFromResponse(data);
     } catch (err) {
       setTopPosition(prevTopPosition);
-      setError(err instanceof Error ? err.message : "Error al quitar de tu Top");
+      setError(err instanceof Error ? err.message : dict.errorRemoveTop);
     } finally {
       setIsPending(false);
     }
@@ -193,11 +209,11 @@ export default function AnimeDetailPanel({
   return (
     <section className="rounded-2xl border border-white/5 bg-surface p-4 shadow-xl sm:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-text-muted">Tu lista</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-text-muted">{dict.myList}</h2>
         {isPending && <LoaderCircle className="h-4 w-4 animate-spin text-violet" />}
       </div>
 
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 no-scrollbar" role="group" aria-label="Estado">
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 no-scrollbar" role="group" aria-label={dict.statusAria}>
         {STATUS_OPTIONS.map((option) => {
           const isActive = status === option.value;
           return (
@@ -213,7 +229,7 @@ export default function AnimeDetailPanel({
                   : "border-white/5 bg-surface-2 text-text-muted hover:text-text"
               }`}
             >
-              {option.label}
+              {statusLabels[option.value]}
             </button>
           );
         })}
@@ -228,20 +244,22 @@ export default function AnimeDetailPanel({
             status={animeStatus}
             nextAiringEpisode={nextAiringEpisode}
             completed={status === "COMPLETED"}
+            dict={progressDict}
+            errors={errors}
             onStatusChange={setStatus}
             onProgressChange={setProgress}
           />
 
           <div className="flex flex-col gap-2 border-t border-white/5 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <label className="flex items-center gap-2 text-xs font-medium text-text-muted">
-              Puntuación
+              {dict.scoreLabel}
               <select
                 value={score ?? 0}
                 onChange={(e) => updateScore(Number(e.target.value))}
                 disabled={isPending}
                 className="min-h-[44px] cursor-pointer rounded-lg border border-white/10 bg-surface-2 px-2.5 text-sm text-text outline-none transition focus:ring-2 focus:ring-violet disabled:opacity-60 sm:min-h-0 sm:py-1.5"
               >
-                <option value={0}>Sin puntuar</option>
+                <option value={0}>{dict.noScore}</option>
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((value) => (
                   <option key={value} value={value}>
                     {value}
@@ -257,7 +275,7 @@ export default function AnimeDetailPanel({
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-white/5 px-3.5 text-xs font-medium text-amber transition hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Quitar de mi lista</span>
+              <span>{dict.removeFromList}</span>
             </button>
           </div>
 
@@ -271,13 +289,13 @@ export default function AnimeDetailPanel({
                   className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-violet/30 bg-violet/10 px-3.5 text-xs font-semibold text-violet transition hover:bg-violet/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   <Star className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Agregar a mi Top</span>
+                  <span>{dict.addToTop}</span>
                 </button>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-2 text-xs font-semibold text-amber">
                     <Star className="h-3.5 w-3.5" aria-hidden="true" />
-                    En tu Top #{topPosition}
+                    {t(dict.inTop, { position: topPosition })}
                   </span>
                   <button
                     type="button"
@@ -286,7 +304,7 @@ export default function AnimeDetailPanel({
                     className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-white/5 px-3.5 text-xs font-medium text-text-muted transition hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <X className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>Quitar del Top</span>
+                    <span>{dict.removeFromTop}</span>
                   </button>
                 </div>
               )}
@@ -295,7 +313,7 @@ export default function AnimeDetailPanel({
         </div>
       ) : (
         <p className="mt-4 text-xs text-text-dim">
-          Agrega este anime a tu lista para trackear episodios y puntuación.
+          {dict.emptyHint}
         </p>
       )}
 

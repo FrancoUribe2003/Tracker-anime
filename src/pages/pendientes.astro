@@ -3,8 +3,11 @@ import Layout from "../layouts/Layout.astro";
 import AnimeCard from "../components/AnimeCard.astro";
 import PageHeader from "../components/PageHeader.astro";
 import { getUserAnimeList, byUpdatedAtDesc, type AnimeListItem } from "../lib/list";
+import { getDictionary } from "../i18n";
 
 export const prerender = false;
+
+const dict = getDictionary(Astro.locals.locale);
 
 const user = Astro.locals.user;
 if (!user) {
@@ -26,13 +29,13 @@ function resolveTitle(item: AnimeListItem): string {
 }
 ---
 
-<Layout title="Pendientes" activeNav="inicio" counts={counts}>
+<Layout title={dict.lists.planningTitle} activeNav="inicio" counts={counts}>
   <div class="pb-8">
     <PageHeader
-      title="Lista de Pendientes"
-      subtitle="Animes que planeas ver más adelante o te han recomendado."
+      title={dict.lists.planningTitle}
+      subtitle={dict.lists.planningSubtitle}
       count={counts.planning}
-      countLabel={counts.planning === 1 ? "pendiente" : "pendientes"}
+      countLabel={counts.planning === 1 ? dict.lists.countPendingOne : dict.lists.countPendingOther}
       countTone="violet"
     />
 
@@ -44,12 +47,12 @@ function resolveTitle(item: AnimeListItem): string {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h2 class="text-lg font-semibold text-text">Tu lista de pendientes está vacía</h2>
+        <h2 class="text-lg font-semibold text-text">{dict.lists.emptyPlanningTitle}</h2>
         <p class="mx-auto mt-2 max-w-sm text-sm text-text-muted">
-          Explora y guarda recomendaciones para no olvidar qué ver a continuación.
+          {dict.lists.emptyPlanningDescription}
         </p>
         <p class="mt-6 text-xs text-text-dim">
-          Usa el buscador de la barra superior y elige el estado &ldquo;Pendiente&rdquo;.
+          {dict.lists.emptyPlanningHint}
         </p>
       </div>
     ) : (
@@ -61,7 +64,7 @@ function resolveTitle(item: AnimeListItem): string {
             coverImage={item.animeData?.coverImage?.large}
             color={item.animeData?.coverImage?.color}
             year={item.animeData?.seasonYear}
-            badge="Pendiente"
+            badge={dict.status.planning}
             badgeTone="violet"
           />
         ))}

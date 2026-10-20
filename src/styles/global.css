@@ -960,3 +960,86 @@ body {
   background-repeat: no-repeat;
   animation: bg-drift 10s linear infinite alternate;
 }
+
+.lang-switch {
+  position: relative;
+  display: inline-block;
+  width: 9em;
+  height: 2.75em;
+  font-size: 0.875rem;
+  border-radius: 30px;
+}
+
+.lang-switch input {
+  display: none;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.lang-switch .lang-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background-color: #313033;
+  transition: all 0.4s;
+  border-radius: 30px;
+}
+
+.lang-switch input:checked + .lang-slider {
+  background-color: #8a5cd4;
+}
+
+.lang-switch input:focus-visible + .lang-slider {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 2px;
+}
+
+.lang-switch .lang-title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 600;
+  color: #fff;
+  transition: all 0.4s;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.lang-switch input:checked + .lang-slider .lang-title {
+  left: 40%;
+}
+
+.lang-switch .lang-ball {
+  position: absolute;
+  top: 50%;
+  left: -1px;
+  height: 2.15em;
+  width: 2.15em;
+  border-radius: 50%;
+  background-color: #fff;
+  transform: translateY(-50%);
+  transition: 0.4s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lang-switch input:checked + .lang-slider .lang-ball {
+  left: 72%;
+  transform: translateY(-50%) rotate(360deg);
+  outline: 6px solid rgba(255, 255, 255, 0.278);
+}
+
+.lang-switch .lang-icon {
+  width: 1em;
+  height: 1em;
+  color: #313033;
+}
+
+.lang-switch.is-pending {
+  opacity: 0.6;
+  pointer-events: none;
+}

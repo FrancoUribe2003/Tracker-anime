@@ -2,9 +2,11 @@
 import Layout from "../layouts/Layout.astro";
 import QueVerHoy from "../components/QueVerHoy.tsx";
 import { getUserAnimeList } from "../lib/list";
+import { getDictionary } from "../i18n";
 
 export const prerender = false;
 
+const dict = getDictionary(Astro.locals.locale);
 const user = Astro.locals.user;
 if (!user) {
   return Astro.redirect("/login");
@@ -13,6 +15,14 @@ if (!user) {
 const { counts } = await getUserAnimeList(user.id);
 ---
 
-<Layout title="Qué ver hoy" activeNav="hoy" counts={counts}>
-  <QueVerHoy client:load viendo={counts.current} pendientes={counts.planning} />
+<Layout title={dict.queVerHoy.title} activeNav="hoy" counts={counts}>
+  <QueVerHoy
+    client:load
+    viendo={counts.current}
+    pendientes={counts.planning}
+    dict={dict.queVerHoy}
+    formats={dict.formats}
+    errors={dict.errors}
+    backLabel={dict.common.back}
+  />
 </Layout>

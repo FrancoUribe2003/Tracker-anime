@@ -1,21 +1,29 @@
----
+﻿---
 import Analytics from "@vercel/analytics/astro";
 import AuthCard from "../components/AuthCard";
+import LanguageSwitch from "../components/LanguageSwitch";
 import { SITE_NAME } from "../lib/site";
+import { getDictionary } from "../i18n";
 import "../styles/global.css";
+
+const locale = Astro.locals.locale;
+const dict = getDictionary(locale);
 ---
 
 <!doctype html>
-<html lang="es" class="dark">
+<html lang={locale} class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Crear Cuenta - {SITE_NAME}</title>
+    <title>{dict.meta.registerTitle} - {SITE_NAME}</title>
   </head>
-  <body class="flex min-h-dvh items-center justify-center p-4 font-sans text-text antialiased selection:bg-violet selection:text-white">
+  <body class="relative flex min-h-dvh items-center justify-center p-4 font-sans text-text antialiased selection:bg-violet selection:text-white">
+    <div class="absolute right-4 top-4">
+      <LanguageSwitch client:idle locale={locale} label={dict.common.language} />
+    </div>
     <div class="w-full max-w-md">
-      <AuthCard client:load initial="signup" />
+      <AuthCard client:load initial="signup" dict={dict.auth} />
     </div>
     <Analytics />
   </body>

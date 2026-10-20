@@ -1,18 +1,21 @@
 ---
+import { getDictionary } from "../i18n";
+
 interface Props {
   currentOrder?: string;
 }
 
 const { currentOrder } = Astro.props;
+const dict = getDictionary(Astro.locals.locale);
 
 const filters = [
-  { id: "puntuacion", label: "Puntuación" },
-  { id: "anio", label: "Año" },
+  { id: "puntuacion", label: dict.lists.sortScore },
+  { id: "anio", label: dict.lists.sortYear },
 ];
 ---
 
 <div class="-mx-4 flex items-center gap-2 overflow-x-auto px-4 no-scrollbar sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-  <span class="mr-1 shrink-0 text-xs text-text-muted">Ordenar por:</span>
+  <span class="mr-1 shrink-0 text-xs text-text-muted">{dict.lists.orderBy}</span>
   {filters.map((filter) => {
     const isActive = currentOrder === filter.id;
     return (
@@ -33,9 +36,9 @@ const filters = [
     <a
       href="?"
       class="ml-1 inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap text-xs text-text-dim underline underline-offset-4 transition hover:text-text-muted"
-      title="Restablecer orden"
+      title={dict.lists.resetOrder}
     >
-      Limpiar
+      {dict.lists.clearOrder}
     </a>
   )}
 </div>

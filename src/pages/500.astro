@@ -1,30 +1,34 @@
----
+﻿---
 import Analytics from "@vercel/analytics/astro";
 import "../styles/global.css";
 import { SITE_NAME } from "../lib/site";
+import { getDictionary } from "../i18n";
+
+const locale = Astro.locals.locale;
+const dict = getDictionary(locale);
 ---
 
 <!doctype html>
-<html lang="es" class="dark">
+<html lang={locale} class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="robots" content="noindex" />
-    <title>Algo salió mal - {SITE_NAME}</title>
+    <title>{dict.meta.serverErrorTitle} - {SITE_NAME}</title>
   </head>
   <body class="flex min-h-dvh flex-col items-center justify-center bg-obsidian p-4 font-sans text-text antialiased">
     <div class="w-full max-w-md rounded-2xl border border-white/5 bg-surface p-8 text-center shadow-xl sm:p-12">
       <p class="text-5xl font-bold text-amber">500</p>
-      <h1 class="mt-4 text-lg font-semibold text-text">Algo salió mal</h1>
+      <h1 class="mt-4 text-lg font-semibold text-text">{dict.errors.serverErrorTitle}</h1>
       <p class="mx-auto mt-2 max-w-sm text-sm text-text-muted">
-        Ocurrió un error inesperado. Probá de nuevo en unos instantes.
+        {dict.errors.serverErrorDescription}
       </p>
       <a
         href="/"
         class="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-violet px-4 text-xs font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90"
       >
-        Volver al inicio
+        {dict.common.backHome}
       </a>
     </div>
     <Analytics />

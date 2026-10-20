@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { authClient } from "../lib/auth-client";
 import SearchBar from "./SearchBar";
+import LanguageSwitch from "./LanguageSwitch";
 import type { UserCounts } from "../lib/counts";
 import { COUNTS_CHANGED_EVENT } from "../lib/counts-client";
+import type { Dictionary, Locale } from "../i18n";
 
 interface UserProp {
   id: string;
@@ -18,13 +20,16 @@ interface NavbarProps {
   currentPath?: string;
   activeNav?: "inicio" | "catalogo" | "hoy" | "top";
   counts?: CountsProp;
+  locale: Locale;
+  dict: Dictionary["nav"];
+  statusDict: Dictionary["status"];
 }
 
 const NAV_ITEMS = [
-  { label: "Inicio", href: "/", key: "inicio", countKey: null },
-  { label: "Catálogo", href: "/catalogo", key: "catalogo", countKey: null },
-  { label: "Qué ver hoy", href: "/que-ver-hoy", key: "hoy", countKey: null },
-  { label: "Top", href: "/top", key: "top", countKey: "top" },
+  { labelKey: "home", href: "/", key: "inicio", countKey: null },
+  { labelKey: "catalog", href: "/catalogo", key: "catalogo", countKey: null },
+  { labelKey: "whatsToday", href: "/que-ver-hoy", key: "hoy", countKey: null },
+  { labelKey: "top", href: "/top", key: "top", countKey: "top" },
 ] as const;
 
 function badgeClass(active: boolean): string {
@@ -38,6 +43,9 @@ export default function Navbar({
   currentPath = "",
   activeNav,
   counts = { completed: 0, current: 0, planning: 0, top: 0 },
+  locale,
+  dict,
+  statusDict,
 }: NavbarProps) {
   const [liveCounts, setLiveCounts] = useState<CountsProp>(counts);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -185,7 +193,7 @@ export default function Navbar({
                         : "text-text-muted hover:bg-surface-2/30 hover:text-text"
                     }`}
                   >
-                    <span>{item.label}</span>
+                    <span>{dict[item.labelKey]}</span>
                     {item.countKey && count > 0 && (
                       <span
                         className={`inline-flex items-center justify-center rounded-full border px-1.5 py-0.5 text-[11px] font-semibold tracking-tight ${badgeClass(
@@ -214,14 +222,20 @@ export default function Navbar({
           </div>
 
           {/* Barra de búsqueda */}
-          <div className="mx-2 flex min-w-0 flex-1 items-center justify-end sm:mx-4 sm:justify-center">
-            <div className="w-full min-w-0 max-w-md">
-              <SearchBar />
+          <div className="mx-2 flex min-w-0 flex-1 items-center justify-end gap-1 sm:mx-4 sm:justify-center">
+            <div className="shrink-0 lg:hidden">
+              <LanguageSwitch locale={locale} label={dict.language} />
+            </div>
+            <div className="w-auto min-w-0 sm:w-full sm:max-w-md">
+              <SearchBar locale={locale} dict={dict} statusDict={statusDict} />
             </div>
           </div>
 
           {/* Menú de usuario y móvil a la derecha */}
           <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden lg:block">
+              <LanguageSwitch locale={locale} label={dict.language} />
+            </div>
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -236,7 +250,7 @@ export default function Navbar({
                   </div>
                   <div className="hidden min-w-0 text-left sm:block sm:flex-1">
                     <p className="truncate text-xs font-medium leading-tight text-text">
-                      {user.name || "Usuario"}
+                      {user.name || dict.user}
                     </p>
                     <p className="truncate text-[11px] leading-tight text-text-dim">
                       {user.email}
@@ -271,7 +285,7 @@ export default function Navbar({
                         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
-                        <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
+                        <span>{isLoggingOut ? dict.loggingOut : dict.logout}</span>
                       </span>
                     </button>
                   </div>
@@ -283,13 +297,13 @@ export default function Navbar({
                   href="/login"
                   className="inline-flex min-h-[44px] items-center rounded-lg px-3 text-xs font-medium text-text-muted transition hover:text-text"
                 >
-                  Ingresar
+                  {dict.login}
                 </a>
                 <a
                   href="/registro"
                   className="inline-flex min-h-[44px] items-center rounded-lg bg-violet px-3.5 text-xs font-medium text-white shadow-md shadow-violet/20 transition hover:bg-violet/90"
                 >
-                  Crear cuenta
+                  {dict.register}
                 </a>
               </div>
             )}
@@ -300,7 +314,7 @@ export default function Navbar({
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-transparent text-text-muted transition hover:border-white/5 hover:bg-surface-2 hover:text-text focus:outline-none focus:ring-2 focus:ring-violet"
-                aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+                aria-label={mobileMenuOpen ? dict.closeMenu : dict.openMenu}
                 aria-expanded={mobileMenuOpen}
                 aria-controls="mobile-menu"
               >
@@ -339,7 +353,7 @@ export default function Navbar({
                     : "text-text-muted hover:bg-surface-2/30 hover:text-text"
                 }`}
               >
-                <span>{item.label}</span>
+                <span>{dict[item.labelKey]}</span>
                 {item.countKey && count > 0 && (
                   <span
                     className={`inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-semibold ${badgeClass(
@@ -353,8 +367,12 @@ export default function Navbar({
             );
           })}
 
+          <div className="mt-2 border-t border-white/5 pt-3">
+            <LanguageSwitch locale={locale} label={dict.language} />
+          </div>
+
           {user && (
-            <div className="mt-2 border-t border-white/5 pt-3">
+            <div className="border-t border-white/5 pt-3">
               <button
                 type="button"
                 onClick={handleSignOut}
@@ -365,7 +383,7 @@ export default function Navbar({
                   <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
-                  <span>{isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}</span>
+                  <span>{isLoggingOut ? dict.loggingOut : dict.logout}</span>
                 </span>
               </button>
             </div>

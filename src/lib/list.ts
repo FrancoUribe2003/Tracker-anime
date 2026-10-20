@@ -43,7 +43,7 @@ export async function getUserAnimeList(userId: string): Promise<UserAnimeList> {
 export interface HomeStats {
   completedCount: number;
   completedEpisodes: number;
-  averageScoreDisplay: string;
+  averageScore: number | null;
   animesProgressPercent: number;
   episodesProgressPercent: number;
   scoreProgressPercent: number;
@@ -87,7 +87,7 @@ export async function getHomeStats(userId: string): Promise<HomeStats> {
   return {
     completedCount,
     completedEpisodes,
-    averageScoreDisplay: averageScore !== null ? averageScore.toFixed(1) : "—",
+    averageScore,
     animesProgressPercent: totalCount > 0 ? (completedCount / totalCount) * 100 : 0,
     episodesProgressPercent: totalEpisodesAllStates > 0 ? (completedEpisodes / totalEpisodesAllStates) * 100 : 0,
     scoreProgressPercent: averageScore !== null ? (averageScore / 10) * 100 : 0,

@@ -4,6 +4,7 @@ import type { RowCard, UserStatus } from "../lib/list";
 import type { UserCounts } from "../lib/counts";
 import { COUNTS_CHANGED_EVENT } from "../lib/counts-client";
 import MediaRowCard from "./MediaRowCard";
+import type { Dictionary, Locale } from "../i18n";
 
 interface MediaRowProps {
   status: UserStatus;
@@ -12,6 +13,8 @@ interface MediaRowProps {
   total: number;
   initialItems: RowCard[];
   withDivider?: boolean;
+  locale: Locale;
+  dict: Dictionary["home"];
 }
 
 const BATCH_SIZE = 12;
@@ -19,10 +22,10 @@ const SKELETON_COUNT = 6;
 const SCROLL_RATIO = 0.85;
 const EDGE_THRESHOLD = 4;
 
-const EMPTY_MESSAGES: Record<UserStatus, string> = {
-  COMPLETED: "Todavía no completaste ningún anime",
-  CURRENT: "Todavía no estás viendo ningún anime",
-  PLANNING: "Todavía no tenés nada en Pendientes",
+const EMPTY_KEYS: Record<UserStatus, keyof Dictionary["home"]> = {
+  COMPLETED: "emptyCompleted",
+  CURRENT: "emptyCurrent",
+  PLANNING: "emptyPlanning",
 };
 
 const COUNT_KEYS: Record<UserStatus, keyof UserCounts> = {
@@ -48,6 +51,8 @@ export default function MediaRow({
   total,
   initialItems,
   withDivider = false,
+  locale,
+  dict,
 }: MediaRowProps) {
   const sectionClass = withDivider
     ? "space-y-4 mt-10 border-t border-white/15 pt-6 sm:mt-14 sm:pt-8"
@@ -154,13 +159,18 @@ export default function MediaRow({
       <h2 className="text-lg font-bold tracking-tight text-text sm:text-xl">
         {title}{" "}
         <span data-count={liveTotal} className="text-sm font-semibold text-text-muted">
-          ({liveTotal})
+          ({new Intl.NumberFormat(locale).format(liveTotal)})
         </span>
       </h2>
       <a
         href={href}
-        aria-label={`Ver todo ${title}`}
-        style={{ "--btn-section": `"${title}"` } as CSSProperties}
+        aria-label={dict.viewAll.replace("{title}", title)}
+        style={
+          {
+            "--btn-section": `"${title}"`,
+            "--btn-label": `"${dict.viewAllButton}"`,
+          } as CSSProperties
+        }
         className="btn-swap shrink-0 focus:outline-none focus:ring-2 focus:ring-violet"
       ></a>
     </div>
@@ -171,12 +181,12 @@ export default function MediaRow({
       <section className={sectionClass}>
         {header}
         <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-white/5 bg-surface p-5 sm:flex-row sm:items-center">
-          <p className="text-sm text-text-muted">{EMPTY_MESSAGES[status]}</p>
+          <p className="text-sm text-text-muted">{dict[EMPTY_KEYS[status]]}</p>
           <a
             href={href}
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/5 bg-surface-2 px-4 text-xs font-medium text-text transition hover:bg-surface-2/80"
           >
-            Buscar animes
+            {dict.browseAnime}
           </a>
         </div>
       </section>
@@ -205,7 +215,7 @@ export default function MediaRow({
           <button
             type="button"
             onClick={() => scrollByRatio(-1)}
-            aria-label={`Desplazar ${title} hacia la izquierda`}
+            aria-label={dict.scrollLeft.replace("{title}", title)}
             className="absolute left-1 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-obsidian/70 text-text shadow-lg backdrop-blur-md transition hover:bg-obsidian/90 hover:text-violet focus:outline-none focus:ring-2 focus:ring-violet md:flex"
           >
             <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -216,7 +226,7 @@ export default function MediaRow({
           <button
             type="button"
             onClick={() => scrollByRatio(1)}
-            aria-label={`Desplazar ${title} hacia la derecha`}
+            aria-label={dict.scrollRight.replace("{title}", title)}
             className="absolute right-1 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-obsidian/70 text-text shadow-lg backdrop-blur-md transition hover:bg-obsidian/90 hover:text-violet focus:outline-none focus:ring-2 focus:ring-violet md:flex"
           >
             <ChevronRight className="h-5 w-5" aria-hidden="true" />
@@ -229,7 +239,7 @@ export default function MediaRow({
           className="no-scrollbar flex snap-x scroll-smooth gap-3 overflow-x-auto px-1 pb-2 pt-1"
         >
           {items.map((item) => (
-            <MediaRowCard key={item.anilistId} item={item} status={status} />
+            <MediaRowCard key={item.anilistId} item={item} status={status} locale={locale} dict={dict} />
           ))}
 
           {isLoading &&
@@ -245,7 +255,7 @@ export default function MediaRow({
                 className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/10 bg-surface-2 px-3 text-xs font-medium text-text transition hover:bg-surface-2/80"
               >
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-                Reintentar
+                {dict.retry}
               </button>
             </div>
           )}

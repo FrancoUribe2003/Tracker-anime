@@ -4,8 +4,11 @@ import FilterPills from "../components/FilterPills.astro";
 import AnimeCard from "../components/AnimeCard.astro";
 import PageHeader from "../components/PageHeader.astro";
 import { getUserAnimeList, type AnimeListItem } from "../lib/list";
+import { getDictionary, t } from "../i18n";
 
 export const prerender = false;
+
+const dict = getDictionary(Astro.locals.locale);
 
 const user = Astro.locals.user;
 if (!user) {
@@ -79,16 +82,16 @@ const nextPageUrl =
 ---
 
 <Layout
-  title="Archivo Maestro"
+  title={dict.lists.completedTitle}
   activeNav="inicio"
   counts={counts}
 >
   <div class="pb-24">
     <PageHeader
-      title="Completados"
-      subtitle="Tu archivo de animes terminados."
+      title={dict.lists.completedTitle}
+      subtitle={dict.lists.completedSubtitle}
       count={completedCount}
-      countLabel={completedCount === 1 ? "anime" : "animes"}
+      countLabel={completedCount === 1 ? dict.lists.countAnimeOne : dict.lists.countAnimeOther}
       countTone="emerald"
     >
       <FilterPills slot="action" currentOrder={orden} />
@@ -103,25 +106,25 @@ const nextPageUrl =
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
           </svg>
         </div>
-        <h2 class="text-lg font-semibold text-text">Tu Archivo Maestro está vacío</h2>
+        <h2 class="text-lg font-semibold text-text">{dict.lists.emptyCompletedTitle}</h2>
         <p class="mx-auto mt-2 max-w-sm text-sm text-text-muted">
-          Aún no tienes animes completados en tu registro. Busca un anime en la barra superior y márcalo como &ldquo;Completado&rdquo; cuando lo termines.
+          {dict.lists.emptyCompletedDescription}
         </p>
         <p class="mt-6 text-xs text-text-dim">
-          Usa el buscador de la barra superior y elige el estado &ldquo;Completado&rdquo;.
+          {dict.lists.emptyCompletedHint}
         </p>
         <div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <a
             href="/pendientes"
             class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-violet px-4 text-xs font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90"
           >
-            Ir a Pendientes
+            {dict.lists.goPlanning}
           </a>
           <a
             href="/viendo"
             class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/5 bg-surface-2 px-4 text-xs font-medium text-text transition hover:bg-surface-2/80"
           >
-            Ver animes en progreso
+            {dict.lists.goCurrent}
           </a>
         </div>
       </section>
@@ -153,16 +156,16 @@ const nextPageUrl =
                 href={prevPageUrl}
                 class="inline-flex min-h-[44px] items-center rounded-lg border border-white/5 bg-surface-2 px-3.5 text-xs font-medium text-text transition hover:border-violet"
               >
-                &larr; Anterior
+                &larr; {dict.lists.previous}
               </a>
             ) : (
               <span class="inline-flex min-h-[44px] cursor-not-allowed items-center rounded-lg border border-white/5 bg-surface-2/40 px-3.5 text-xs font-medium text-text-dim">
-                &larr; Anterior
+                &larr; {dict.lists.previous}
               </span>
             )}
 
             <span class="px-2 text-xs font-medium text-text-muted">
-              Página {currentPage} de {totalPages}
+              {t(dict.lists.pageOf, { page: currentPage, total: totalPages })}
             </span>
 
             {nextPageUrl ? (
@@ -170,11 +173,11 @@ const nextPageUrl =
                 href={nextPageUrl}
                 class="inline-flex min-h-[44px] items-center rounded-lg border border-white/5 bg-surface-2 px-3.5 text-xs font-medium text-text transition hover:border-violet"
               >
-                Siguiente &rarr;
+                {dict.lists.next} &rarr;
               </a>
             ) : (
               <span class="inline-flex min-h-[44px] cursor-not-allowed items-center rounded-lg border border-white/5 bg-surface-2/40 px-3.5 text-xs font-medium text-text-dim">
-                Siguiente &rarr;
+                {dict.lists.next} &rarr;
               </span>
             )}
           </nav>
@@ -190,9 +193,9 @@ const nextPageUrl =
     >
       <div class="pointer-events-auto inline-flex max-w-[92vw] items-center gap-2.5 rounded-full border border-white/10 bg-surface/90 px-4 py-2.5 shadow-2xl shadow-obsidian backdrop-blur-md sm:px-5">
         <span class="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald"></span>
-        <span class="truncate text-xs text-text-muted">Total de episodios vistos:</span>
+        <span class="truncate text-xs text-text-muted">{dict.lists.totalEpisodesWatched}</span>
         <span class="shrink-0 bg-gradient-to-r from-emerald to-cyan bg-clip-text text-xs font-bold text-transparent sm:text-sm">
-          {completedEpisodes} eps
+          {completedEpisodes} {dict.home.episodesShort}
         </span>
       </div>
     </div>

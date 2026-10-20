@@ -1,4 +1,6 @@
 ---
+import { getDictionary } from "../i18n";
+
 interface Props {
   title: string;
   href?: string | null;
@@ -10,6 +12,8 @@ interface Props {
   badgeTone?: "emerald" | "violet" | "cyan";
 }
 
+const dict = getDictionary(Astro.locals.locale);
+
 const {
   title,
   href,
@@ -17,7 +21,7 @@ const {
   color,
   score,
   year,
-  badge = "Concluido",
+  badge = dict.status.completed,
   badgeTone = "emerald",
 } = Astro.props;
 

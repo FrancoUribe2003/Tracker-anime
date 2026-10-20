@@ -1,7 +1,8 @@
----
+﻿---
 import Analytics from "@vercel/analytics/astro";
 import Navbar from "../components/Navbar";
 import { SITE_NAME } from "../lib/site";
+import { getDictionary } from "../i18n";
 import "../styles/global.css";
 
 interface Props {
@@ -16,24 +17,26 @@ interface Props {
 }
 
 const { title, activeNav, counts } = Astro.props;
+const locale = Astro.locals.locale;
+const dict = getDictionary(locale);
 const pageTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
 const user = Astro.locals.user;
 const currentPath = Astro.url.pathname;
 ---
 
 <!doctype html>
-<html lang="es" class="dark">
+<html lang={locale} class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="robots" content="noindex" />
-    <meta name="description" content={`${SITE_NAME} — Plataforma de seguimiento personal de anime`} />
+    <meta name="description" content={dict.meta.description} />
     <meta property="og:site_name" content={SITE_NAME} />
     <title>{pageTitle}</title>
   </head>
   <body class="flex min-h-dvh flex-col bg-obsidian font-sans text-text antialiased selection:bg-violet selection:text-white">
-    <Navbar client:idle user={user} currentPath={currentPath} activeNav={activeNav} counts={counts} />
+    <Navbar client:idle user={user} currentPath={currentPath} activeNav={activeNav} counts={counts} locale={locale} dict={dict.nav} statusDict={dict.status} />
 
     <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <slot />
@@ -43,10 +46,10 @@ const currentPath = Astro.url.pathname;
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <slot name="footer">
           <p class="tracking-wide">
-            {SITE_NAME} &bull; Plataforma de seguimiento personal de anime
+            {SITE_NAME} &bull; {dict.common.tagline}
           </p>
           <p class="mt-1 tracking-wide">
-            Datos provistos por
+            {dict.common.dataBy}
             <a
               href="https://anilist.co"
               target="_blank"

@@ -1,5 +1,6 @@
 ---
 import BackButton from "./BackButton.tsx";
+import { getDictionary } from "../i18n";
 
 interface Props {
   title: string;
@@ -11,6 +12,8 @@ interface Props {
   backLabel?: string;
 }
 
+const dict = getDictionary(Astro.locals.locale);
+
 const {
   title,
   subtitle,
@@ -18,7 +21,7 @@ const {
   countLabel,
   countTone = "violet",
   backFallback = "/",
-  backLabel = "Inicio",
+  backLabel = dict.common.home,
 } = Astro.props;
 
 const TONE_STYLES = {

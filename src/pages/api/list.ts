@@ -11,23 +11,21 @@ import { getCounts } from "../../lib/counts";
 export const prerender = false;
 
 const postSchema = z.object({
-  anilistId: z.number().int().positive("El ID de AniList debe ser un número entero positivo"),
-  status: z.enum(["CURRENT", "PLANNING", "COMPLETED"], {
-    errorMap: () => ({ message: "El estado debe ser CURRENT, PLANNING o COMPLETED" }),
-  }),
+  anilistId: z.number().int().positive(),
+  status: z.enum(["CURRENT", "PLANNING", "COMPLETED"]),
   progress: z.number().int().nonnegative().optional(),
   score: z.number().min(0).max(10).optional().nullable(),
 });
 
 const deleteSchema = z.object({
-  anilistId: z.number().int().positive("El ID de AniList debe ser un número entero positivo"),
+  anilistId: z.number().int().positive(),
 });
 
 export const POST: APIRoute = async (ctx) => {
   try {
     const sessionUser = ctx.locals.user ?? (await auth.api.getSession({ headers: ctx.request.headers }))?.user;
     if (!sessionUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       });
@@ -37,7 +35,7 @@ export const POST: APIRoute = async (ctx) => {
     try {
       body = await ctx.request.json();
     } catch {
-      return new Response(JSON.stringify({ error: "Cuerpo de solicitud inválido" }), {
+      return new Response(JSON.stringify({ error: "invalid_body" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -46,7 +44,7 @@ export const POST: APIRoute = async (ctx) => {
     const validation = postSchema.safeParse(body);
     if (!validation.success) {
       return new Response(
-        JSON.stringify({ error: validation.error.errors[0]?.message ?? "Datos inválidos" }),
+        JSON.stringify({ error: "invalid_input" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -129,7 +127,7 @@ export const POST: APIRoute = async (ctx) => {
         console.error("Causa de LibSQL (saveError.cause):", saveError.cause);
       }
       return new Response(
-        JSON.stringify({ error: "Error al actualizar la base de datos de usuario" }),
+        JSON.stringify({ error: "server_error" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },
@@ -157,7 +155,7 @@ export const POST: APIRoute = async (ctx) => {
       console.error("Causa de LibSQL (error.cause):", error.cause);
     }
     return new Response(
-      JSON.stringify({ error: "Error interno al actualizar la lista" }),
+      JSON.stringify({ error: "server_error" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -170,7 +168,7 @@ export const DELETE: APIRoute = async (ctx) => {
   try {
     const sessionUser = ctx.locals.user ?? (await auth.api.getSession({ headers: ctx.request.headers }))?.user;
     if (!sessionUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       });
@@ -180,7 +178,7 @@ export const DELETE: APIRoute = async (ctx) => {
     try {
       body = await ctx.request.json();
     } catch {
-      return new Response(JSON.stringify({ error: "Cuerpo de solicitud inválido" }), {
+      return new Response(JSON.stringify({ error: "invalid_body" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -189,7 +187,7 @@ export const DELETE: APIRoute = async (ctx) => {
     const validation = deleteSchema.safeParse(body);
     if (!validation.success) {
       return new Response(
-        JSON.stringify({ error: validation.error.errors[0]?.message ?? "Datos inválidos" }),
+        JSON.stringify({ error: "invalid_input" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -227,7 +225,7 @@ export const DELETE: APIRoute = async (ctx) => {
         console.error("Causa de LibSQL (dbError.cause):", dbError.cause);
       }
       return new Response(
-        JSON.stringify({ error: "Error al eliminar de la base de datos" }),
+        JSON.stringify({ error: "server_error" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },
@@ -247,7 +245,7 @@ export const DELETE: APIRoute = async (ctx) => {
       console.error("Causa de LibSQL (error.cause):", error.cause);
     }
     return new Response(
-      JSON.stringify({ error: "Error interno al eliminar de la lista" }),
+      JSON.stringify({ error: "server_error" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

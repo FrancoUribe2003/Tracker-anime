@@ -31,6 +31,8 @@ import {
 } from "lucide-react";
 import { Toast, useToast } from "./Toast";
 import { emitCounts, refreshCounts, syncCountsFromResponse } from "../lib/counts-client";
+import { apiErrorMessage } from "../lib/api-errors";
+import { t, type Dictionary } from "../i18n";
 
 export interface TopItem {
   anilistId: number;
@@ -47,17 +49,10 @@ interface TopListProps {
   initialItems: TopItem[];
   candidates: TopItem[];
   hasCompleted: boolean;
+  dict: Dictionary["top"];
+  formats: Dictionary["formats"];
+  errors: Dictionary["errors"];
 }
-
-const FORMAT_LABELS: Record<string, string> = {
-  TV: "Serie de TV",
-  TV_SHORT: "Corto de TV",
-  MOVIE: "Película",
-  SPECIAL: "Especial",
-  OVA: "OVA",
-  ONA: "ONA",
-  MUSIC: "Video musical",
-};
 
 const REORDER_DEBOUNCE_MS = 400;
 
@@ -68,11 +63,11 @@ function positionClass(position: number): string {
   return "text-text-muted";
 }
 
-function metaParts(item: TopItem): string[] {
+function metaParts(item: TopItem, formats: Dictionary["formats"], dict: Dictionary["top"]): string[] {
   return [
     item.year ? String(item.year) : null,
-    item.format ? FORMAT_LABELS[item.format] ?? item.format : null,
-    item.episodes ? `${item.episodes} eps` : null,
+    item.format ? formats[item.format as keyof Dictionary["formats"]] ?? item.format : null,
+    item.episodes ? t(dict.episodeCount, { count: item.episodes }) : null,
   ].filter(Boolean) as string[];
 }
 
@@ -103,11 +98,13 @@ interface RowProps {
   position: number;
   isFirst: boolean;
   isLast: boolean;
+  dict: Dictionary["top"];
+  formats: Dictionary["formats"];
   onMove: (index: number, direction: -1 | 1) => void;
   onRemove: (item: TopItem) => void;
 }
 
-function SortableRow({ item, index, position, isFirst, isLast, onMove, onRemove }: RowProps) {
+function SortableRow({ item, index, position, isFirst, isLast, dict, formats, onMove, onRemove }: RowProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.anilistId });
 
@@ -116,7 +113,7 @@ function SortableRow({ item, index, position, isFirst, isLast, onMove, onRemove 
     transition,
   };
 
-  const meta = metaParts(item);
+  const meta = metaParts(item, formats, dict);
 
   return (
     <li
@@ -131,7 +128,7 @@ function SortableRow({ item, index, position, isFirst, isLast, onMove, onRemove 
           type="button"
           onClick={() => onMove(index, -1)}
           disabled={isFirst}
-          aria-label="Subir una posición"
+          aria-label={dict.moveUp}
           className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-muted transition hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-25"
         >
           <ChevronUp className="h-4 w-4" aria-hidden="true" />
@@ -140,7 +137,7 @@ function SortableRow({ item, index, position, isFirst, isLast, onMove, onRemove 
           type="button"
           onClick={() => onMove(index, 1)}
           disabled={isLast}
-          aria-label="Bajar una posición"
+          aria-label={dict.moveDown}
           className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-muted transition hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-25"
         >
           <ChevronDown className="h-4 w-4" aria-hidden="true" />
@@ -183,7 +180,7 @@ function SortableRow({ item, index, position, isFirst, isLast, onMove, onRemove 
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          aria-label={`Reordenar ${item.title}`}
+          aria-label={t(dict.reorderLabel, { title: item.title })}
           className="inline-flex h-11 w-11 cursor-grab touch-none items-center justify-center rounded-lg text-text-dim transition hover:bg-surface-2 hover:text-text active:cursor-grabbing"
         >
           <GripVertical className="h-5 w-5" aria-hidden="true" />
@@ -191,7 +188,7 @@ function SortableRow({ item, index, position, isFirst, isLast, onMove, onRemove 
         <button
           type="button"
           onClick={() => onRemove(item)}
-          aria-label={`Quitar ${item.title} del Top`}
+          aria-label={t(dict.removeLabel, { title: item.title })}
           className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-dim transition hover:bg-surface-2 hover:text-amber"
         >
           <X className="h-4 w-4" aria-hidden="true" />
@@ -218,11 +215,13 @@ function RowPreview({ item, position }: { item: TopItem; position: number }) {
 interface AddPanelProps {
   available: TopItem[];
   pendingId: number | null;
+  dict: Dictionary["top"];
+  formats: Dictionary["formats"];
   onAdd: (item: TopItem) => void;
   onClose: () => void;
 }
 
-function AddPanel({ available, pendingId, onAdd, onClose }: AddPanelProps) {
+function AddPanel({ available, pendingId, dict, formats, onAdd, onClose }: AddPanelProps) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -235,17 +234,17 @@ function AddPanel({ available, pendingId, onAdd, onClose }: AddPanelProps) {
     <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center">
       <button
         type="button"
-        aria-label="Cerrar"
+        aria-label={dict.closePanel}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-obsidian/80 backdrop-blur-sm"
       />
       <div className="relative z-10 flex max-h-[85dvh] w-full flex-col rounded-t-2xl border border-white/10 bg-surface shadow-2xl sm:max-h-[70vh] sm:max-w-lg sm:rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-white/5 p-4">
-          <h2 className="text-sm font-semibold text-text">Agregar al Top</h2>
+          <h2 className="text-sm font-semibold text-text">{dict.panelTitle}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Cerrar panel"
+            aria-label={dict.closePanel}
             className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-muted transition hover:bg-surface-2 hover:text-text"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -259,7 +258,7 @@ function AddPanel({ available, pendingId, onAdd, onClose }: AddPanelProps) {
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar entre tus completados..."
+              placeholder={dict.searchPlaceholder}
               autoComplete="off"
               className="w-full rounded-xl border border-white/5 bg-surface-2 py-2.5 pl-9 pr-3 text-base text-text placeholder:text-text-muted focus:border-violet focus:outline-none focus:ring-1 focus:ring-violet"
             />
@@ -269,9 +268,7 @@ function AddPanel({ available, pendingId, onAdd, onClose }: AddPanelProps) {
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6 no-scrollbar">
           {filtered.length === 0 ? (
             <p className="py-8 text-center text-xs text-text-dim">
-              {available.length === 0
-                ? "Ya agregaste todos tus animes completados."
-                : "No se encontraron animes para tu búsqueda."}
+              {available.length === 0 ? dict.allAdded : dict.noResults}
             </p>
           ) : (
             <ul className="divide-y divide-white/5">
@@ -288,9 +285,9 @@ function AddPanel({ available, pendingId, onAdd, onClose }: AddPanelProps) {
                       <Cover item={item} className="w-10 shrink-0 aspect-[2/3]" />
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-1 text-sm font-medium text-text">{item.title}</p>
-                        {metaParts(item).length > 0 && (
+                        {metaParts(item, formats, dict).length > 0 && (
                           <p className="mt-0.5 truncate text-[11px] text-text-muted">
-                            {metaParts(item).join(" • ")}
+                            {metaParts(item, formats, dict).join(" • ")}
                           </p>
                         )}
                       </div>
@@ -312,7 +309,7 @@ function AddPanel({ available, pendingId, onAdd, onClose }: AddPanelProps) {
   );
 }
 
-export default function TopList({ initialItems, candidates, hasCompleted }: TopListProps) {
+export default function TopList({ initialItems, candidates, hasCompleted, dict, formats, errors }: TopListProps) {
   const [items, setItems] = useState<TopItem[]>(initialItems);
   const [available, setAvailable] = useState<TopItem[]>(candidates);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -342,7 +339,8 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
           body: JSON.stringify({ order }),
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error ?? "No se pudo guardar el orden");
+        if (!response.ok)
+          throw new Error(apiErrorMessage(data.error, dict.saveOrderError, errors));
         if (requestId === requestIdRef.current) {
           confirmedRef.current = order;
           syncCountsFromResponse(data);
@@ -356,10 +354,10 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
           const reordered = confirmed.map((id) => map.get(id)).filter(Boolean) as TopItem[];
           return reordered.length === current.length ? reordered : current;
         });
-        showToast(err instanceof Error ? err.message : "No se pudo guardar el orden");
+        showToast(err instanceof Error ? err.message : dict.saveOrderError);
       }
     },
-    [showToast]
+    [dict.saveOrderError, errors, showToast]
   );
 
   const scheduleOrder = useCallback(
@@ -395,7 +393,7 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
   }
 
   async function removeFromTop(item: TopItem) {
-    if (!window.confirm(`¿Quitar "${item.title}" de tu Top?`)) return;
+    if (!window.confirm(t(dict.removeConfirm, { title: item.title }))) return;
 
     const prevItems = items;
     const prevAvailable = available;
@@ -410,15 +408,15 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
         body: JSON.stringify({ anilistId: item.anilistId }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "No se pudo quitar del Top");
+      if (!response.ok) throw new Error(apiErrorMessage(data.error, dict.removeError, errors));
       confirmedRef.current = confirmedRef.current.filter((id) => id !== item.anilistId);
       syncCountsFromResponse(data);
-      showToast("Quitado de tu Top");
+      showToast(dict.removed);
     } catch (err) {
       setItems(prevItems);
       setAvailable(prevAvailable);
       void refreshCounts();
-      showToast(err instanceof Error ? err.message : "No se pudo quitar del Top");
+      showToast(err instanceof Error ? err.message : dict.removeError);
     }
   }
 
@@ -433,15 +431,15 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
         body: JSON.stringify({ anilistId: item.anilistId }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "No se pudo agregar al Top");
+      if (!response.ok) throw new Error(apiErrorMessage(data.error, dict.addError, errors));
       setItems((current) => [...current, item]);
       confirmedRef.current = [...confirmedRef.current, item.anilistId];
       setAvailable((current) => current.filter((entry) => entry.anilistId !== item.anilistId));
       syncCountsFromResponse(data);
-      showToast("Agregado a tu Top");
+      showToast(dict.added);
     } catch (err) {
       void refreshCounts();
-      showToast(err instanceof Error ? err.message : "No se pudo agregar al Top");
+      showToast(err instanceof Error ? err.message : dict.addError);
     } finally {
       setPendingId(null);
     }
@@ -454,9 +452,9 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
     <div className="space-y-6 pb-24">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-text sm:text-2xl">Mi Top</h1>
+          <h1 className="text-xl font-bold tracking-tight text-text sm:text-2xl">{dict.title}</h1>
           <p className="mt-1 text-sm text-text-muted">
-            {items.length} {items.length === 1 ? "anime" : "animes"} en tu ranking
+            {t(items.length === 1 ? dict.rankingCountOne : dict.rankingCountOther, { count: items.length })}
           </p>
         </div>
         <button
@@ -466,7 +464,7 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
           className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-violet px-4 text-sm font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          Agregar al top
+          {dict.addToTop}
         </button>
       </div>
 
@@ -477,9 +475,9 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
           </div>
           {hasCompleted ? (
             <>
-              <h2 className="text-lg font-semibold text-text">Tu Top está vacío</h2>
+              <h2 className="text-lg font-semibold text-text">{dict.emptyTitle}</h2>
               <p className="mx-auto mt-2 max-w-sm text-sm text-text-muted">
-                Elegí tus animes completados y armá tu ranking personal.
+                {dict.emptyDescription}
               </p>
               <button
                 type="button"
@@ -487,20 +485,20 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
                 className="mt-6 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-violet px-4 text-xs font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
-                Agregar al top
+                {dict.addToTop}
               </button>
             </>
           ) : (
             <>
-              <h2 className="text-lg font-semibold text-text">Todavía no completaste animes</h2>
+              <h2 className="text-lg font-semibold text-text">{dict.emptyNoCompleted}</h2>
               <p className="mx-auto mt-2 max-w-sm text-sm text-text-muted">
-                Marcá animes como completados para poder armar tu Top personal.
+                {dict.emptyNoCompletedDescription}
               </p>
               <a
                 href="/pendientes"
                 className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-violet px-4 text-xs font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90"
               >
-                Buscar animes
+                {dict.browseAnime}
               </a>
             </>
           )}
@@ -523,6 +521,8 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
                   position={index + 1}
                   isFirst={index === 0}
                   isLast={index === items.length - 1}
+                  dict={dict}
+                  formats={formats}
                   onMove={move}
                   onRemove={removeFromTop}
                 />
@@ -539,6 +539,8 @@ export default function TopList({ initialItems, candidates, hasCompleted }: TopL
         <AddPanel
           available={available}
           pendingId={pendingId}
+          dict={dict}
+          formats={formats}
           onAdd={addToTop}
           onClose={() => setPanelOpen(false)}
         />

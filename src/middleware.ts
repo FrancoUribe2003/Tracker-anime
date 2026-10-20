@@ -1,7 +1,9 @@
 import { defineMiddleware } from "astro:middleware";
 import { auth } from "./lib/auth";
+import { isLocale, type Locale } from "./i18n";
 
 const PUBLIC_ROUTES = ["/login", "/registro"];
+const PUBLIC_API_ROUTES = ["/api/locale"];
 const STATIC_ASSET_REGEX = /\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|txt|xml|woff|woff2|ttf|eot)$/;
 
 const CONTENT_SECURITY_POLICY = [
@@ -18,6 +20,12 @@ const CONTENT_SECURITY_POLICY = [
   "frame-ancestors 'none'",
 ].join("; ");
 
+function detectLocale(cookie: string | undefined, acceptLanguage: string | null): Locale {
+  if (isLocale(cookie)) return cookie;
+  if (acceptLanguage?.trim().toLowerCase().startsWith("en")) return "en";
+  return "es";
+}
+
 function withSecurityHeaders(response: Response): Response {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -29,6 +37,10 @@ function withSecurityHeaders(response: Response): Response {
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
+  context.locals.locale = detectLocale(
+    context.cookies.get("lang")?.value,
+    context.request.headers.get("accept-language")
+  );
 
   if (
     pathname.startsWith("/_astro") ||
@@ -43,6 +55,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
   if (isAuthRoute) {
+    return withSecurityHeaders(await next());
+  }
+
+  if (PUBLIC_API_ROUTES.includes(pathname)) {
+    context.locals.user = null;
+    context.locals.session = null;
     return withSecurityHeaders(await next());
   }
 

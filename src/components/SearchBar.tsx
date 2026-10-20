@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Search, X, Loader2 } from "lucide-react";
+import type { Dictionary, Locale } from "../i18n";
 
 interface SearchMediaItem {
   id: number;
@@ -20,13 +21,22 @@ interface SearchMediaItem {
   userScore: number | null;
 }
 
-const STATUS_META: Record<string, { label: string; className: string }> = {
-  CURRENT: { label: "Viendo", className: "border-cyan/30 bg-cyan/10 text-cyan" },
-  PLANNING: { label: "Pendiente", className: "border-violet/30 bg-violet/10 text-violet" },
-  COMPLETED: { label: "Completado", className: "border-emerald/30 bg-emerald/10 text-emerald" },
+const STATUS_META: Record<
+  string,
+  { labelKey: keyof Dictionary["status"]; className: string }
+> = {
+  CURRENT: { labelKey: "current", className: "border-cyan/30 bg-cyan/10 text-cyan" },
+  PLANNING: { labelKey: "planning", className: "border-violet/30 bg-violet/10 text-violet" },
+  COMPLETED: { labelKey: "completed", className: "border-emerald/30 bg-emerald/10 text-emerald" },
 };
 
-export default function SearchBar() {
+interface SearchBarProps {
+  locale: Locale;
+  dict: Dictionary["nav"];
+  statusDict: Dictionary["status"];
+}
+
+export default function SearchBar({ locale, dict, statusDict }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -164,12 +174,14 @@ export default function SearchBar() {
   };
 
   const renderResultItem = (item: SearchMediaItem, index: number) => {
-    const title = item.title.english || item.title.romaji || "Sin título";
+    const title = item.title.english || item.title.romaji || dict.untitled;
     const fallbackBg = item.coverImage?.color || "#1E293B";
     const metaParts = [
-      item.seasonYear ? String(item.seasonYear) : null,
+      item.seasonYear ? new Intl.NumberFormat(locale, { useGrouping: false }).format(item.seasonYear) : null,
       item.format ? item.format.toUpperCase() : null,
-      item.episodes ? `${item.episodes} eps` : null,
+      item.episodes
+        ? `${new Intl.NumberFormat(locale).format(item.episodes)} ${dict.episodesShort}`
+        : null,
     ].filter(Boolean) as string[];
     const statusMeta = item.userStatus ? STATUS_META[item.userStatus] : undefined;
     const isActive = index === activeIndex;
@@ -218,7 +230,7 @@ export default function SearchBar() {
           <span
             className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusMeta.className}`}
           >
-            {statusMeta.label}
+            {statusDict[statusMeta.labelKey]}
           </span>
         )}
       </a>
@@ -238,7 +250,7 @@ export default function SearchBar() {
               setTimeout(() => mobileInputRef.current?.focus(), 50);
             }}
             className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-transparent text-text-muted transition hover:border-white/5 hover:bg-surface-2 hover:text-text"
-            aria-label="Abrir buscador"
+            aria-label={dict.searchOpen}
           >
             <Search className="w-5 h-5" />
           </button>
@@ -257,7 +269,8 @@ export default function SearchBar() {
               onFocus={() => {
                 if (query.trim().length >= 2) setIsOpen(true);
               }}
-              placeholder="Buscar animes..."
+              placeholder={dict.searchPlaceholder}
+              aria-label={dict.searchPlaceholder}
               autoComplete="off"
               role="combobox"
               aria-expanded={isOpen && query.trim().length >= 2}
@@ -276,7 +289,7 @@ export default function SearchBar() {
                   setActiveIndex(-1);
                 }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-dim hover:text-text"
-                aria-label="Limpiar búsqueda"
+                aria-label={dict.searchClear}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -293,13 +306,13 @@ export default function SearchBar() {
               {isLoading && results.length === 0 ? (
                 <div className="flex items-center justify-center gap-2 p-8 text-center text-xs text-text-muted">
                   <Loader2 className="h-4 w-4 animate-spin text-violet" />
-                  <span>Buscando en AniList...</span>
+                  <span>{dict.searching}</span>
                 </div>
               ) : results.length > 0 ? (
                 <div>{results.map(renderResultItem)}</div>
               ) : hasSearched ? (
                 <div className="p-8 text-center text-xs text-text-muted">
-                  No se encontraron animes para &ldquo;{query}&rdquo;
+                  {dict.searchNoResults.replace("{query}", query)}
                 </div>
               ) : null}
             </div>
@@ -316,7 +329,7 @@ export default function SearchBar() {
                 type="button"
                 onClick={handleClose}
                 className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-2 hover:text-text"
-                aria-label="Cerrar búsqueda"
+                aria-label={dict.searchClose}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -329,7 +342,8 @@ export default function SearchBar() {
                   value={query}
                   onChange={(e) => handleInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Buscar animes..."
+                  placeholder={dict.searchPlaceholder}
+                  aria-label={dict.searchPlaceholder}
                   autoComplete="off"
                   role="combobox"
                   aria-expanded={results.length > 0}
@@ -350,17 +364,17 @@ export default function SearchBar() {
               {isLoading && results.length === 0 ? (
                 <div className="flex items-center justify-center gap-2 p-8 text-center text-xs text-text-muted">
                   <Loader2 className="h-4 w-4 animate-spin text-violet" />
-                  <span>Buscando en AniList...</span>
+                  <span>{dict.searching}</span>
                 </div>
               ) : results.length > 0 ? (
                 <div className="divide-y divide-white/5">{results.map(renderResultItem)}</div>
               ) : hasSearched && query.trim().length >= 2 ? (
                 <div className="p-8 text-center text-xs text-text-muted">
-                  No se encontraron animes para &ldquo;{query}&rdquo;
+                  {dict.searchNoResults.replace("{query}", query)}
                 </div>
               ) : (
                 <div className="p-8 text-center text-xs text-text-dim">
-                  Escribe al menos 2 caracteres para buscar
+                  {dict.searchMinChars}
                 </div>
               )}
             </div>

@@ -1,19 +1,23 @@
-import type { RowCard, UserStatus } from "../lib/list";
+﻿import type { RowCard, UserStatus } from "../lib/list";
+import type { Dictionary, Locale } from "../i18n";
 
 interface MediaRowCardProps {
   item: RowCard;
   status: UserStatus;
+  locale: Locale;
+  dict: Dictionary["home"];
 }
 
-export default function MediaRowCard({ item, status }: MediaRowCardProps) {
+export default function MediaRowCard({ item, status, locale, dict }: MediaRowCardProps) {
+  const formatter = new Intl.NumberFormat(locale);
   const percent =
     item.episodes && item.episodes > 0
       ? Math.min(Math.round((item.progress / item.episodes) * 100), 100)
       : null;
 
   const planningMeta = [
-    item.year ? String(item.year) : null,
-    item.episodes ? `${item.episodes} eps` : null,
+    item.year ? formatter.format(item.year) : null,
+    item.episodes ? `${formatter.format(item.episodes)} ${dict.episodesShort}` : null,
   ]
     .filter(Boolean)
     .join(" • ");
@@ -46,14 +50,14 @@ export default function MediaRowCard({ item, status }: MediaRowCardProps) {
       </h3>
 
       {status === "COMPLETED" && item.score != null && item.score > 0 && (
-        <p className="mt-0.5 text-[11px] font-semibold text-emerald">{item.score}/10</p>
+        <p className="mt-0.5 text-[11px] font-semibold text-emerald">{formatter.format(item.score)}/10</p>
       )}
 
       {status === "CURRENT" && (
         <div className="mt-1">
           <p className="text-[11px] text-text-muted">
-            Ep. {item.progress}
-            {item.episodes ? ` / ${item.episodes}` : ""}
+            {dict.episodeShort} {formatter.format(item.progress)}
+            {item.episodes ? ` / ${formatter.format(item.episodes)}` : ""}
           </p>
           {percent !== null && (
             <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-white/10">

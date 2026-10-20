@@ -18,7 +18,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 const idSchema = z.object({
-  anilistId: z.number().int().positive("El ID de AniList debe ser un número entero positivo"),
+  anilistId: z.number().int().positive(),
 });
 
 async function getSessionUser(ctx: Parameters<APIRoute>[0]) {
@@ -28,7 +28,7 @@ async function getSessionUser(ctx: Parameters<APIRoute>[0]) {
 export const GET: APIRoute = async (ctx) => {
   try {
     const user = await getSessionUser(ctx);
-    if (!user) return json({ error: "No autorizado" }, 401);
+    if (!user) return json({ error: "unauthorized" }, 401);
 
     const rows = await db
       .select()
@@ -58,21 +58,21 @@ export const GET: APIRoute = async (ctx) => {
     return json({ items });
   } catch (error: any) {
     console.error("Error no controlado en GET /api/top:", error?.cause ?? error);
-    return json({ error: "Error interno al obtener tu Top" }, 500);
+    return json({ error: "server_error" }, 500);
   }
 };
 
 export const POST: APIRoute = async (ctx) => {
   try {
     const user = await getSessionUser(ctx);
-    if (!user) return json({ error: "No autorizado" }, 401);
+    if (!user) return json({ error: "unauthorized" }, 401);
 
     const body = await ctx.request.json().catch(() => null);
-    if (body === null) return json({ error: "Cuerpo de solicitud inválido" }, 400);
+    if (body === null) return json({ error: "invalid_body" }, 400);
 
     const validation = idSchema.safeParse(body);
     if (!validation.success) {
-      return json({ error: validation.error.errors[0]?.message ?? "Datos inválidos" }, 400);
+      return json({ error: "invalid_input" }, 400);
     }
 
     const { anilistId } = validation.data;
@@ -85,12 +85,12 @@ export const POST: APIRoute = async (ctx) => {
         .limit(1);
 
       const record = rows[0];
-      if (!record) return { error: "El anime no está en tu lista", status: 404 } as const;
+      if (!record) return { error: "anime_not_in_list", status: 404 } as const;
       if (record.status !== "COMPLETED") {
-        return { error: "Solo podés agregar animes completados", status: 400 } as const;
+        return { error: "only_completed", status: 400 } as const;
       }
       if (record.topPosition != null) {
-        return { error: "El anime ya está en tu Top", status: 409 } as const;
+        return { error: "already_in_top", status: 409 } as const;
       }
 
       const topRows = await tx
@@ -114,21 +114,21 @@ export const POST: APIRoute = async (ctx) => {
     return json({ success: true, position: result.position, counts });
   } catch (error: any) {
     console.error("Error no controlado en POST /api/top:", error?.cause ?? error);
-    return json({ error: "Error interno al agregar al Top" }, 500);
+    return json({ error: "server_error" }, 500);
   }
 };
 
 export const DELETE: APIRoute = async (ctx) => {
   try {
     const user = await getSessionUser(ctx);
-    if (!user) return json({ error: "No autorizado" }, 401);
+    if (!user) return json({ error: "unauthorized" }, 401);
 
     const body = await ctx.request.json().catch(() => null);
-    if (body === null) return json({ error: "Cuerpo de solicitud inválido" }, 400);
+    if (body === null) return json({ error: "invalid_body" }, 400);
 
     const validation = idSchema.safeParse(body);
     if (!validation.success) {
-      return json({ error: validation.error.errors[0]?.message ?? "Datos inválidos" }, 400);
+      return json({ error: "invalid_input" }, 400);
     }
 
     const { anilistId } = validation.data;
@@ -153,6 +153,6 @@ export const DELETE: APIRoute = async (ctx) => {
     return json({ success: true, counts });
   } catch (error: any) {
     console.error("Error no controlado en DELETE /api/top:", error?.cause ?? error);
-    return json({ error: "Error interno al quitar del Top" }, 500);
+    return json({ error: "server_error" }, 500);
   }
 };

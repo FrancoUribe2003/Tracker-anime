@@ -2,8 +2,11 @@
 import Layout from "../layouts/Layout.astro";
 import TopList, { type TopItem } from "../components/TopList.tsx";
 import { getUserAnimeList, type UserAnimeRecord } from "../lib/list";
+import { getDictionary } from "../i18n";
 
 export const prerender = false;
+
+const dict = getDictionary(Astro.locals.locale);
 
 const user = Astro.locals.user;
 if (!user) {
@@ -39,11 +42,14 @@ const candidates: TopItem[] = completedRecords
   .map(toTopItem);
 ---
 
-<Layout title="Mi Top" activeNav="top" counts={counts}>
+<Layout title={dict.top.title} activeNav="top" counts={counts}>
   <TopList
     client:load
     initialItems={initialItems}
     candidates={candidates}
     hasCompleted={completedRecords.length > 0}
+    dict={dict.top}
+    formats={dict.formats}
+    errors={dict.errors}
   />
 </Layout>

@@ -1,4 +1,6 @@
 ---
+import { getDictionary } from "../i18n";
+
 interface Props {
   id: number;
   title: string;
@@ -21,25 +23,17 @@ const {
   status = null,
 } = Astro.props;
 
-const FORMAT_LABELS: Record<string, string> = {
-  TV: "Serie de TV",
-  TV_SHORT: "Corto de TV",
-  MOVIE: "Película",
-  SPECIAL: "Especial",
-  OVA: "OVA",
-  ONA: "ONA",
-  MUSIC: "Video musical",
-};
-
-const formatLabel = format ? FORMAT_LABELS[format] ?? format : null;
+const dict = getDictionary(Astro.locals.locale);
+const formatLabels = dict.formats as Record<string, string>;
+const formatLabel = format ? formatLabels[format] ?? format : null;
 const meta = [year ? String(year) : null, formatLabel].filter(Boolean).join(" • ");
 const scoreLabel =
   typeof averageScore === "number" && averageScore > 0 ? (averageScore / 10).toFixed(1) : null;
 
 const STATUS_META = {
-  CURRENT: { label: "Viendo", tone: "text-cyan border-cyan/30" },
-  PLANNING: { label: "Pendiente", tone: "text-violet border-violet/30" },
-  COMPLETED: { label: "Completado", tone: "text-emerald border-emerald/30" },
+  CURRENT: { label: dict.status.current, tone: "text-cyan border-cyan/30" },
+  PLANNING: { label: dict.status.planning, tone: "text-violet border-violet/30" },
+  COMPLETED: { label: dict.status.completed, tone: "text-emerald border-emerald/30" },
 } as const;
 
 const statusMeta = status ? STATUS_META[status] : null;

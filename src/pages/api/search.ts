@@ -16,7 +16,7 @@ const searchCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 const searchSchema = z.object({
-  q: z.string().trim().min(2, "La búsqueda debe tener al menos 2 caracteres"),
+  q: z.string().trim().min(2),
 });
 
 const ANILIST_SEARCH_QUERY = `
@@ -44,7 +44,7 @@ export const GET: APIRoute = async (ctx) => {
   try {
     const sessionUser = ctx.locals.user ?? (await auth.api.getSession({ headers: ctx.request.headers }))?.user;
     if (!sessionUser) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       });
@@ -56,7 +56,7 @@ export const GET: APIRoute = async (ctx) => {
     const validation = searchSchema.safeParse({ q: qParam });
     if (!validation.success) {
       return new Response(
-        JSON.stringify({ error: validation.error.errors[0]?.message ?? "Parámetro inválido" }),
+        JSON.stringify({ error: "invalid_input" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -164,7 +164,7 @@ export const GET: APIRoute = async (ctx) => {
     });
   } catch (error: any) {
     console.error("Error no controlado en GET /api/search:", error?.cause ?? error);
-    return new Response(JSON.stringify({ error: "Error interno al buscar animes" }), {
+    return new Response(JSON.stringify({ error: "server_error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

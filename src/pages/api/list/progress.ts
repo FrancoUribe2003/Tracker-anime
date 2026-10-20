@@ -14,19 +14,12 @@ const MAX_UNKNOWN_EPISODES = 3000;
 
 const progressSchema = z
   .object({
-    anilistId: z.number().int().positive("El ID de AniList debe ser un número entero positivo"),
-    delta: z.number().int("El delta debe ser un número entero").optional(),
-    progress: z
-      .number()
-      .int()
-      .nonnegative("El progreso no puede ser negativo")
-      .max(100000, "El progreso es demasiado alto")
-      .optional(),
+    anilistId: z.number().int().positive(),
+    delta: z.number().int().optional(),
+    progress: z.number().int().nonnegative().max(100000).optional(),
     score: z.number().min(0).max(10).nullable().optional(),
   })
-  .refine((data) => data.delta !== undefined || data.progress !== undefined || data.score !== undefined, {
-    message: "Debes enviar 'delta', 'progress' o 'score'",
-  });
+  .refine((data) => data.delta !== undefined || data.progress !== undefined || data.score !== undefined);
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -41,22 +34,19 @@ export const PATCH: APIRoute = async (ctx) => {
       ctx.locals.user ?? (await auth.api.getSession({ headers: ctx.request.headers }))?.user;
 
     if (!sessionUser) {
-      return json({ error: "No autorizado" }, 401);
+      return json({ error: "unauthorized" }, 401);
     }
 
     let body: unknown;
     try {
       body = await ctx.request.json();
     } catch {
-      return json({ error: "Cuerpo de solicitud inválido" }, 400);
+      return json({ error: "invalid_body" }, 400);
     }
 
     const validation = progressSchema.safeParse(body);
     if (!validation.success) {
-      return json(
-        { error: validation.error.errors[0]?.message ?? "Datos inválidos" },
-        400
-      );
+      return json({ error: "invalid_input" }, 400);
     }
 
     const { anilistId, delta, progress, score } = validation.data;
@@ -71,11 +61,11 @@ export const PATCH: APIRoute = async (ctx) => {
       current = rows[0];
     } catch (dbError: any) {
       console.error("Error al consultar userAnime en PATCH /api/list/progress:", dbError?.cause ?? dbError);
-      return json({ error: "Error al consultar tu lista" }, 500);
+      return json({ error: "server_error" }, 500);
     }
 
     if (!current) {
-      return json({ error: "El anime no está en tu lista" }, 404);
+      return json({ error: "anime_not_in_list" }, 404);
     }
 
     const now = new Date();
@@ -131,7 +121,7 @@ export const PATCH: APIRoute = async (ctx) => {
       });
     } catch (saveError: any) {
       console.error("Error al actualizar progreso en PATCH /api/list/progress:", saveError?.cause ?? saveError);
-      return json({ error: "Error al actualizar el progreso" }, 500);
+      return json({ error: "server_error" }, 500);
     }
 
     const counts = await getCounts(sessionUser.id);
@@ -146,6 +136,6 @@ export const PATCH: APIRoute = async (ctx) => {
     });
   } catch (error: any) {
     console.error("Error no controlado en PATCH /api/list/progress:", error?.cause ?? error);
-    return json({ error: "Error interno al actualizar el progreso" }, 500);
+    return json({ error: "server_error" }, 500);
   }
 };

@@ -1,9 +1,10 @@
----
+﻿---
 import Layout from "../layouts/Layout.astro";
 import StatCard from "../components/StatCard.astro";
 import MediaRow from "../components/MediaRow.tsx";
 import { getHomeStats, getUserAnimeRow } from "../lib/list";
 import { getCounts } from "../lib/counts";
+import { formatNumber, getDictionary } from "../i18n";
 
 export const prerender = false;
 
@@ -12,6 +13,8 @@ if (!user) {
   return Astro.redirect("/login");
 }
 
+const locale = Astro.locals.locale;
+const dict = getDictionary(locale);
 const ROW_LIMIT = 12;
 
 const [stats, counts, completed, current, planning] = await Promise.all([
@@ -21,24 +24,32 @@ const [stats, counts, completed, current, planning] = await Promise.all([
   getUserAnimeRow(user.id, "CURRENT", 0, ROW_LIMIT),
   getUserAnimeRow(user.id, "PLANNING", 0, ROW_LIMIT),
 ]);
+
+const averageScore =
+  stats.averageScore !== null
+    ? formatNumber(locale, stats.averageScore, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      })
+    : dict.home.noScore;
 ---
 
-<Layout title="Inicio" activeNav="inicio" counts={counts}>
+<Layout title={dict.home.title} activeNav="inicio" counts={counts}>
   <div class="pb-24">
     <section class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
       <StatCard
-        value={stats.completedCount}
-        label="Animes completados"
+        value={formatNumber(locale, stats.completedCount)}
+        label={dict.home.completedAnimes}
         progress={stats.animesProgressPercent}
       />
       <StatCard
-        value={stats.completedEpisodes}
-        label="Episodios vistos"
+        value={formatNumber(locale, stats.completedEpisodes)}
+        label={dict.home.watchedEpisodes}
         progress={stats.episodesProgressPercent}
       />
       <StatCard
-        value={stats.averageScoreDisplay}
-        label="Puntuación media"
+        value={averageScore}
+        label={dict.home.averageScore}
         progress={stats.scoreProgressPercent}
       />
     </section>
@@ -46,29 +57,35 @@ const [stats, counts, completed, current, planning] = await Promise.all([
     <MediaRow
       client:visible
       status="COMPLETED"
-      title="Completados"
+      title={dict.home.completed}
       href="/completados"
       total={counts.completed}
       initialItems={completed}
+      locale={locale}
+      dict={dict.home}
     />
 
     <MediaRow
       client:visible
       status="CURRENT"
-      title="Viendo"
+      title={dict.home.current}
       href="/viendo"
       total={counts.current}
       initialItems={current}
+      locale={locale}
+      dict={dict.home}
       withDivider={true}
     />
 
     <MediaRow
       client:visible
       status="PLANNING"
-      title="Pendientes"
+      title={dict.home.planning}
       href="/pendientes"
       total={counts.planning}
       initialItems={planning}
+      locale={locale}
+      dict={dict.home}
       withDivider={true}
     />
   </div>

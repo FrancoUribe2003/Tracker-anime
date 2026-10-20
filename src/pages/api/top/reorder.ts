@@ -16,23 +16,21 @@ function json(body: unknown, status = 200): Response {
 }
 
 const reorderSchema = z.object({
-  order: z
-    .array(z.number().int().positive("Los IDs deben ser enteros positivos"))
-    .min(1, "El orden no puede estar vacío"),
+  order: z.array(z.number().int().positive()).min(1),
 });
 
 export const PUT: APIRoute = async (ctx) => {
   try {
     const user =
       ctx.locals.user ?? (await auth.api.getSession({ headers: ctx.request.headers }))?.user ?? null;
-    if (!user) return json({ error: "No autorizado" }, 401);
+    if (!user) return json({ error: "unauthorized" }, 401);
 
     const body = await ctx.request.json().catch(() => null);
-    if (body === null) return json({ error: "Cuerpo de solicitud inválido" }, 400);
+    if (body === null) return json({ error: "invalid_body" }, 400);
 
     const validation = reorderSchema.safeParse(body);
     if (!validation.success) {
-      return json({ error: validation.error.errors[0]?.message ?? "Datos inválidos" }, 400);
+      return json({ error: "invalid_input" }, 400);
     }
 
     const { order } = validation.data;
@@ -53,7 +51,7 @@ export const PUT: APIRoute = async (ctx) => {
         requestedSet.size !== order.length ||
         order.some((id) => !currentSet.has(id))
       ) {
-        return { error: "El orden no coincide con tu Top actual", status: 400 } as const;
+        return { error: "order_mismatch", status: 400 } as const;
       }
 
       for (let index = 0; index < order.length; index += 1) {
@@ -71,6 +69,6 @@ export const PUT: APIRoute = async (ctx) => {
     return json({ success: true, counts });
   } catch (error: any) {
     console.error("Error no controlado en PUT /api/top/reorder:", error?.cause ?? error);
-    return json({ error: "Error interno al reordenar tu Top" }, 500);
+    return json({ error: "server_error" }, 500);
   }
 };

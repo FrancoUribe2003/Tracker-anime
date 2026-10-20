@@ -1,23 +1,27 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 import { SITE_NAME } from "../lib/site";
+import type { Dictionary } from "../i18n";
 
 interface AuthCardProps {
   initial?: "login" | "signup";
+  dict: Dictionary["auth"];
 }
 
-export default function AuthCard({ initial = "login" }: AuthCardProps) {
+export default function AuthCard({ initial = "login", dict }: AuthCardProps) {
   const [isRegister, setIsRegister] = useState(initial === "signup");
 
   return (
     <div className="auth-wrap">
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold tracking-tight text-text">
-          {isRegister ? "Crear Cuenta" : "Bienvenido de nuevo"}
+          {isRegister ? dict.registerTitle : dict.loginTitle}
         </h1>
         <p className="mt-1.5 text-sm text-text-muted">
-          {isRegister ? `Únete a ${SITE_NAME} y organiza tu catálogo` : "Continúa con el seguimiento de tus animes"}
+          {isRegister
+            ? dict.registerSubtitle.replace("{site}", SITE_NAME)
+            : dict.loginSubtitle}
         </p>
       </div>
 
@@ -27,14 +31,14 @@ export default function AuthCard({ initial = "login" }: AuthCardProps) {
           className={`label ${isRegister ? "" : "active"}`}
           onClick={() => setIsRegister(false)}
         >
-          Iniciar sesión
+          {dict.tabLogin}
         </button>
         <label className="auth-toggle">
           <input
             type="checkbox"
             checked={isRegister}
             onChange={(event) => setIsRegister(event.target.checked)}
-            aria-label="Cambiar entre iniciar sesión y crear cuenta"
+            aria-label={dict.switchLabel}
           />
           <span className="auth-slider" aria-hidden="true" />
         </label>
@@ -43,17 +47,17 @@ export default function AuthCard({ initial = "login" }: AuthCardProps) {
           className={`label ${isRegister ? "active" : ""}`}
           onClick={() => setIsRegister(true)}
         >
-          Crear cuenta
+          {dict.tabRegister}
         </button>
       </div>
 
       <div className="auth-flip">
         <div className={`auth-flip-inner ${isRegister ? "flipped" : ""}`}>
           <div className="auth-face front" inert={isRegister}>
-            <LoginForm />
+            <LoginForm dict={dict} />
           </div>
           <div className="auth-face back" inert={!isRegister}>
-            <RegisterForm />
+            <RegisterForm dict={dict} />
           </div>
         </div>
       </div>

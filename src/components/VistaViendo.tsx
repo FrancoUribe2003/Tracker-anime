@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ProgressControl from "./ProgressControl";
 import ViendoCard from "./ViendoCard";
+import type { Dictionary } from "../i18n";
 
 export interface ViendoItem {
   anilistId: number;
@@ -17,6 +18,10 @@ export interface ViendoItem {
 
 interface VistaViendoProps {
   items: ViendoItem[];
+  dict: Dictionary["lists"];
+  statusDict: Dictionary["status"];
+  progressDict: Dictionary["progress"];
+  errors: Dictionary["errors"];
 }
 
 function sortItems(list: ViendoItem[]): ViendoItem[] {
@@ -28,7 +33,7 @@ function sortItems(list: ViendoItem[]): ViendoItem[] {
   });
 }
 
-export default function VistaViendo({ items: initialItems }: VistaViendoProps) {
+export default function VistaViendo({ items: initialItems, dict, statusDict, progressDict, errors }: VistaViendoProps) {
   const [items, setItems] = useState(() => sortItems(initialItems));
 
   const itemsRef = useRef(items);
@@ -80,12 +85,12 @@ export default function VistaViendo({ items: initialItems }: VistaViendoProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-text">No tienes animes en curso</h2>
+          <h2 className="text-lg font-semibold text-text">{dict.emptyCurrentTitle}</h2>
           <p className="mx-auto mt-2 max-w-sm text-sm text-text-muted">
-            Agrega series que estés viendo con el buscador para trackear tus episodios y tu progreso diario.
+            {dict.emptyCurrentDescription}
           </p>
           <p className="mt-6 text-xs text-text-dim">
-            Usa el buscador de la barra superior y elige el estado &ldquo;Viendo&rdquo;.
+            {dict.emptyCurrentHint}
           </p>
         </section>
       ) : (
@@ -142,7 +147,7 @@ export default function VistaViendo({ items: initialItems }: VistaViendoProps) {
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
                   <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-cyan/30 bg-cyan/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-cyan">
                     <span className="h-1.5 w-1.5 rounded-full bg-cyan"></span>
-                    Continuar viendo
+                    {dict.continueWatching}
                   </span>
                   <a href={`/anime/${principal.anilistId}`} className="w-fit">
                     <h2 className="line-clamp-2 text-xl font-bold tracking-tight text-text transition-colors hover:text-violet sm:text-2xl">
@@ -157,6 +162,8 @@ export default function VistaViendo({ items: initialItems }: VistaViendoProps) {
                       status={principal.status}
                       nextAiringEpisode={principal.nextAiringEpisode}
                       variant="full"
+                      dict={progressDict}
+                      errors={errors}
                       onProgressChange={(next) => handleProgressChange(principal.anilistId, next)}
                       onStatusChange={() => handleCompleted(principal.anilistId)}
                       onSaveSuccess={handleSaveSuccess}
@@ -171,7 +178,7 @@ export default function VistaViendo({ items: initialItems }: VistaViendoProps) {
           {rest.length > 0 && (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-text-muted">
-                En progreso
+                {dict.inProgress}
               </h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                 {rest.map((item) => (
@@ -181,7 +188,7 @@ export default function VistaViendo({ items: initialItems }: VistaViendoProps) {
                     href={`/anime/${item.anilistId}`}
                     coverImage={item.coverImage}
                     color={item.color}
-                    badge="Viendo"
+                    badge={statusDict.current}
                     badgeTone="cyan"
                   >
                     <ProgressControl
@@ -191,6 +198,8 @@ export default function VistaViendo({ items: initialItems }: VistaViendoProps) {
                       status={item.status}
                       nextAiringEpisode={item.nextAiringEpisode}
                       variant="mini"
+                      dict={progressDict}
+                      errors={errors}
                       onProgressChange={(next) => handleProgressChange(item.anilistId, next)}
                       onStatusChange={() => handleCompleted(item.anilistId)}
                       onSaveSuccess={handleSaveSuccess}

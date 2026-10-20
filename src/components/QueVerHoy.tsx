@@ -3,10 +3,16 @@ import { Check, LoaderCircle, Play, Plus, Shuffle } from "lucide-react";
 import { Toast, useToast } from "./Toast";
 import BackButton from "./BackButton";
 import { syncCountsFromResponse } from "../lib/counts-client";
+import { apiErrorMessage } from "../lib/api-errors";
+import { t, type Dictionary } from "../i18n";
 
 interface QueVerHoyProps {
   viendo: number;
   pendientes: number;
+  dict: Dictionary["queVerHoy"];
+  formats: Dictionary["formats"];
+  errors: Dictionary["errors"];
+  backLabel: string;
 }
 
 interface RandomAnime {
@@ -25,17 +31,7 @@ interface RandomAnime {
 
 type View = "menu" | "follow" | "start";
 
-const FORMAT_LABELS: Record<string, string> = {
-  TV: "Serie de TV",
-  TV_SHORT: "Corto de TV",
-  MOVIE: "Película",
-  SPECIAL: "Especial",
-  OVA: "OVA",
-  ONA: "ONA",
-  MUSIC: "Video musical",
-};
-
-export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
+export default function QueVerHoy({ viendo, pendientes, dict, formats, errors, backLabel }: QueVerHoyProps) {
   const [view, setView] = useState<View>("menu");
   const [item, setItem] = useState<RandomAnime | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,16 +65,16 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
       const response = await fetch(`/api/random?${params.toString()}`);
       if (response.status === 404) {
         setItem(null);
-        setNotice(excludeId ? "Es el único que tenés ahí" : "No hay animes disponibles");
+        setNotice(excludeId ? dict.onlyOne : dict.noAnime);
         return;
       }
-      if (!response.ok) throw new Error("No se pudo obtener un anime");
+      if (!response.ok) throw new Error(dict.fetchError);
 
       const data: RandomAnime = await response.json();
       setItem(data);
     } catch (err) {
       setItem(null);
-      setError(err instanceof Error ? err.message : "No se pudo obtener un anime");
+      setError(err instanceof Error ? err.message : dict.fetchError);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +95,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
 
   function another() {
     if (countForView <= 1) {
-      setNotice("Es el único que tenés ahí");
+      setNotice(dict.onlyOne);
       return;
     }
     void fetchRandom(statusForView, item?.id);
@@ -115,7 +111,8 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
         body: JSON.stringify({ anilistId: item.id, delta: 1 }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "No se pudo actualizar el progreso");
+      if (!response.ok)
+        throw new Error(apiErrorMessage(data.error, dict.progressError, errors));
 
       setItem((prev) =>
         prev
@@ -126,10 +123,10 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
             }
           : prev
       );
-      showToast(data.status === "COMPLETED" ? "Marcado como completado" : "Episodio actualizado");
+      showToast(data.status === "COMPLETED" ? dict.markedCompleted : dict.episodeUpdated);
       syncCountsFromResponse(data);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "No se pudo actualizar el progreso");
+      showToast(err instanceof Error ? err.message : dict.progressError);
     } finally {
       setIsActing(false);
     }
@@ -145,14 +142,15 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
         body: JSON.stringify({ anilistId: item.id, status: "CURRENT", progress: 0 }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "No se pudo agregar a tu lista");
+      if (!response.ok)
+        throw new Error(apiErrorMessage(data.error, dict.addError, errors));
 
       setItem((prev) => (prev ? { ...prev, status: "CURRENT", progress: 0 } : prev));
       setStarted(true);
-      showToast("Agregado a Viendo");
+      showToast(dict.addedToCurrent);
       syncCountsFromResponse(data);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "No se pudo agregar a tu lista");
+      showToast(err instanceof Error ? err.message : dict.addError);
     } finally {
       setIsActing(false);
     }
@@ -165,8 +163,8 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-text sm:text-2xl">¿Qué querés ver hoy?</h1>
-          <p className="mt-1 text-sm text-text-muted">Elegí una opción y te proponemos un anime al azar.</p>
+          <h1 className="text-xl font-bold tracking-tight text-text sm:text-2xl">{dict.title}</h1>
+          <p className="mt-1 text-sm text-text-muted">{dict.subtitle}</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -180,11 +178,11 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
               <Play className="h-6 w-6" aria-hidden="true" />
             </span>
             <span className="mt-4 block">
-              <span className="block text-lg font-semibold text-text">Seguir un anime</span>
+              <span className="block text-lg font-semibold text-text">{dict.follow}</span>
               {seguirDisabled ? (
-                <span className="mt-1 block text-sm text-text-dim">No tenés animes en curso.</span>
+                <span className="mt-1 block text-sm text-text-dim">{dict.noCurrent}</span>
               ) : (
-                <span className="mt-1 block text-sm text-text-muted">{viendo} en curso</span>
+                <span className="mt-1 block text-sm text-text-muted">{t(dict.currentCount, { count: viendo })}</span>
               )}
             </span>
           </button>
@@ -199,12 +197,12 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
               <Plus className="h-6 w-6" aria-hidden="true" />
             </span>
             <span className="mt-4 block">
-              <span className="block text-lg font-semibold text-text">Empezar uno nuevo</span>
+              <span className="block text-lg font-semibold text-text">{dict.start}</span>
               {empezarDisabled ? (
-                <span className="mt-1 block text-sm text-text-dim">No tenés animes pendientes.</span>
+                <span className="mt-1 block text-sm text-text-dim">{dict.noPlanning}</span>
               ) : (
                 <span className="mt-1 block text-sm text-text-muted">
-                  {pendientes} {pendientes === 1 ? "pendiente" : "pendientes"}
+                  {t(pendientes === 1 ? dict.planningCountOne : dict.planningCountOther, { count: pendientes })}
                 </span>
               )}
             </span>
@@ -216,7 +214,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
             href="/pendientes"
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/5 bg-surface-2 px-4 text-xs font-medium text-text transition hover:bg-surface-2/80"
           >
-            Agregar animes desde el buscador
+            {dict.browseHint}
           </a>
         )}
       </div>
@@ -226,13 +224,13 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
   return (
     <div className="space-y-6 pt-4 sm:pt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <BackButton fallback="/que-ver-hoy" onNavigate={changeOption} />
+        <BackButton fallback="/que-ver-hoy" onNavigate={changeOption} label={backLabel} />
         <span
           className={`rounded-full border px-3 py-1 text-xs font-semibold ${
             view === "follow" ? "border-cyan/30 bg-cyan/10 text-cyan" : "border-violet/30 bg-violet/10 text-violet"
           }`}
         >
-          {view === "follow" ? "Seguir un anime" : "Empezar uno nuevo"}
+          {view === "follow" ? dict.follow : dict.start}
         </span>
       </div>
 
@@ -248,7 +246,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
             onClick={another}
             className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-violet px-4 text-xs font-semibold text-white transition hover:bg-violet/90"
           >
-            Reintentar
+            {dict.retry}
           </button>
         </div>
       ) : item ? (
@@ -290,8 +288,8 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
                 {item.averageScore && <span className="font-semibold text-emerald">{item.averageScore}/100</span>}
                 {item.seasonYear && <span>{item.seasonYear}</span>}
-                {item.format && <span>{FORMAT_LABELS[item.format] ?? item.format}</span>}
-                {item.episodes && <span>{item.episodes} episodios</span>}
+                {item.format && <span>{formats[item.format as keyof typeof formats] ?? item.format}</span>}
+                {item.episodes && <span>{t(dict.episodeCount, { count: item.episodes })}</span>}
               </div>
 
               {item.genres.length > 0 && (
@@ -310,7 +308,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
               {view === "follow" && (
                 <div className="mt-1 space-y-2">
                   <p className="text-sm font-medium text-text-muted">
-                    Vas por el Ep. {item.progress}
+                    {t(dict.watchingEpisode, { value: item.progress })}
                     {item.episodes ? ` / ${item.episodes}` : ""}
                   </p>
                   {item.episodes && (
@@ -331,7 +329,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
                       href={`/anime/${item.id}`}
                       className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-cyan px-4 text-sm font-semibold text-obsidian transition hover:bg-cyan/90 sm:flex-none"
                     >
-                      Ir al anime
+                      {dict.goToAnime}
                     </a>
                     <button
                       type="button"
@@ -344,7 +342,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
                       ) : (
                         <Check className="h-4 w-4" aria-hidden="true" />
                       )}
-                      +1 episodio
+                      {dict.addOne}
                     </button>
                   </>
                 ) : started ? (
@@ -352,7 +350,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
                     href={`/anime/${item.id}`}
                     className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-cyan px-4 text-sm font-semibold text-obsidian transition hover:bg-cyan/90 sm:flex-none"
                   >
-                    Ir al anime
+                    {dict.goToAnime}
                   </a>
                 ) : (
                   <>
@@ -367,13 +365,13 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
                       ) : (
                         <Play className="h-4 w-4" aria-hidden="true" />
                       )}
-                      Empezar a verlo
+                      {dict.startWatching}
                     </button>
                     <a
                       href={`/anime/${item.id}`}
                       className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/10 bg-surface-2 px-4 text-sm font-medium text-text transition hover:bg-surface-2/80 sm:flex-none"
                     >
-                      Ver detalle
+                      {dict.viewDetail}
                     </a>
                   </>
                 )}
@@ -385,7 +383,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
                   className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-surface-2 px-4 text-sm font-medium text-text transition hover:bg-surface-2/80 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
                 >
                   <Shuffle className="h-4 w-4" aria-hidden="true" />
-                  Otro
+                  {dict.another}
                 </button>
               </div>
 
@@ -395,7 +393,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
         </section>
       ) : (
         <div className="rounded-2xl border border-white/5 bg-surface p-8 text-center">
-          <p className="text-sm text-text-muted">{notice ?? "No hay animes disponibles"}</p>
+          <p className="text-sm text-text-muted">{notice ?? dict.noAnime}</p>
         </div>
       )}
 
@@ -404,7 +402,7 @@ export default function QueVerHoy({ viendo, pendientes }: QueVerHoyProps) {
         onClick={changeOption}
         className="text-xs font-medium text-text-dim underline underline-offset-4 transition hover:text-text-muted"
       >
-        Cambiar opción
+        {dict.changeOption}
       </button>
 
       <Toast message={message} />

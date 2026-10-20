@@ -1,20 +1,26 @@
 import React, { useState } from "react";
 import { z } from "zod";
 import { authClient } from "../lib/auth-client";
+import { authErrorMessage } from "../lib/auth-error";
+import type { Dictionary } from "../i18n";
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "El correo electrónico es obligatorio")
-    .email("Ingresa un correo electrónico válido"),
-  password: z
-    .string()
-    .min(1, "La contraseña es obligatoria"),
-});
+interface LoginFormData {
+  email: string;
+  password: string;
+}
 
-type LoginFormData = z.infer<typeof loginSchema>;
+function loginSchema(dict: Dictionary["auth"]) {
+  return z.object({
+    email: z.string().min(1, dict.emailRequired).email(dict.emailInvalid),
+    password: z.string().min(1, dict.passwordRequired),
+  });
+}
 
-export default function LoginForm() {
+interface LoginFormProps {
+  dict: Dictionary["auth"];
+}
+
+export default function LoginForm({ dict }: LoginFormProps) {
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
@@ -36,7 +42,7 @@ export default function LoginForm() {
     e.preventDefault();
     setGeneralError(null);
 
-    const validation = loginSchema.safeParse(formData);
+    const validation = loginSchema(dict).safeParse(formData);
     if (!validation.success) {
       const errors: Partial<Record<keyof LoginFormData, string>> = {};
       validation.error.issues.forEach((err) => {
@@ -57,16 +63,14 @@ export default function LoginForm() {
       });
 
       if (error) {
-        setGeneralError(
-          error.message || "Credenciales incorrectas. Verifica tu correo y contraseña."
-        );
+        setGeneralError(authErrorMessage(error, dict, dict.invalidCredentials));
         setIsLoading(false);
         return;
       }
 
       window.location.href = "/";
     } catch {
-      setGeneralError("Ocurrió un error inesperado al conectar con el servidor.");
+      setGeneralError(dict.serverError);
       setIsLoading(false);
     }
   };
@@ -88,10 +92,10 @@ export default function LoginForm() {
             name="email"
             type="email"
             autoComplete="email"
-            aria-label="Correo electrónico"
+            aria-label={dict.email}
             value={formData.email}
             onChange={handleChange}
-            placeholder="Correo electrónico"
+            placeholder={dict.email}
             disabled={isLoading}
             className={`auth-input ${fieldErrors.email ? "has-error" : ""}`}
           />
@@ -105,10 +109,10 @@ export default function LoginForm() {
             name="password"
             type="password"
             autoComplete="current-password"
-            aria-label="Contraseña"
+            aria-label={dict.password}
             value={formData.password}
             onChange={handleChange}
-            placeholder="Contraseña"
+            placeholder={dict.password}
             disabled={isLoading}
             className={`auth-input ${fieldErrors.password ? "has-error" : ""}`}
           />
@@ -124,10 +128,10 @@ export default function LoginForm() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <span>Entrando...</span>
+              <span>{dict.loginLoading}</span>
             </>
           ) : (
-            <span>Ingresar</span>
+            <span>{dict.loginSubmit}</span>
           )}
         </button>
       </form>
