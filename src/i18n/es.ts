@@ -255,6 +255,10 @@ export const es = {
     changeOption: "Cambiar opción",
     retry: "Reintentar",
   },
+  footer: {
+    explore: "Explorar",
+    account: "Cuenta",
+  },
   common: {
     tagline: "Plataforma de seguimiento personal de anime",
     dataBy: "Datos provistos por",

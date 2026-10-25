@@ -257,6 +257,10 @@ export const en: Dictionary = {
     changeOption: "Change option",
     retry: "Retry",
   },
+  footer: {
+    explore: "Explore",
+    account: "Account",
+  },
   common: {
     tagline: "Personal anime tracking platform",
     dataBy: "Data provided by",

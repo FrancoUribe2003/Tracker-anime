@@ -1,0 +1,85 @@
+---
+import { SITE_NAME } from "../lib/site";
+import { getDictionary } from "../i18n";
+
+const dict = getDictionary(Astro.locals.locale);
+const year = new Date().getFullYear();
+
+const exploreLinks = [
+  { label: dict.nav.home, href: "/" },
+  { label: dict.nav.catalog, href: "/catalogo" },
+  { label: dict.nav.whatsToday, href: "/que-ver-hoy" },
+  { label: dict.nav.top, href: "/top" },
+];
+
+const accountLinks = [
+  { label: dict.nav.login, href: "/login" },
+  { label: dict.nav.register, href: "/registro" },
+];
+---
+
+<footer
+  class="mt-auto border-t border-white/5"
+  style="padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem)"
+>
+  <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr]">
+      <div>
+        <a href="/" class="inline-flex items-center gap-2 text-base font-bold tracking-tight text-text">
+          <span class="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-violet to-cyan"></span>
+          {SITE_NAME}
+        </a>
+        <p class="mt-3 max-w-xs text-sm leading-relaxed text-text-muted">
+          {dict.common.tagline}
+        </p>
+      </div>
+
+      <nav aria-label={dict.footer.explore}>
+        <h2 class="text-xs font-semibold tracking-widest text-text-dim uppercase">
+          {dict.footer.explore}
+        </h2>
+        <ul class="mt-4 space-y-2.5">
+          {exploreLinks.map((link) => (
+            <li>
+              <a href={link.href} class="text-sm text-text-muted transition hover:text-text">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <nav aria-label={dict.footer.account}>
+        <h2 class="text-xs font-semibold tracking-widest text-text-dim uppercase">
+          {dict.footer.account}
+        </h2>
+        <ul class="mt-4 space-y-2.5">
+          {accountLinks.map((link) => (
+            <li>
+              <a href={link.href} class="text-sm text-text-muted transition hover:text-text">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+
+    <div
+      class="mt-10 flex flex-col gap-3 border-t border-white/5 pt-6 text-xs text-text-dim sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p>&copy; {year} {SITE_NAME}</p>
+      <p>
+        {dict.common.dataBy}
+        <a
+          href="https://anilist.co"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-text-muted underline underline-offset-2 transition hover:text-text"
+        >
+          AniList
+        </a>
+      </p>
+    </div>
+  </div>
+</footer>
