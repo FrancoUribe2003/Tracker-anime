@@ -1,4 +1,4 @@
-﻿---
+---
 import Layout from "../layouts/Layout.astro";
 import StatCard from "../components/StatCard.astro";
 import MediaRow from "../components/MediaRow.tsx";
@@ -9,84 +9,181 @@ import { formatNumber, getDictionary } from "../i18n";
 export const prerender = false;
 
 const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect("/login");
-}
-
 const locale = Astro.locals.locale;
 const dict = getDictionary(locale);
 const ROW_LIMIT = 12;
 
-const [stats, counts, completed, current, planning] = await Promise.all([
-  getHomeStats(user.id),
-  getCounts(user.id),
-  getUserAnimeRow(user.id, "COMPLETED", 0, ROW_LIMIT),
-  getUserAnimeRow(user.id, "CURRENT", 0, ROW_LIMIT),
-  getUserAnimeRow(user.id, "PLANNING", 0, ROW_LIMIT),
-]);
+let stats = null;
+let counts = undefined;
+let completed: any[] = [];
+let current: any[] = [];
+let planning: any[] = [];
+let averageScore = dict.home.noScore;
 
-const averageScore =
-  stats.averageScore !== null
-    ? formatNumber(locale, stats.averageScore, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      })
-    : dict.home.noScore;
+if (user) {
+  const [userStats, userCounts, userCompleted, userCurrent, userPlanning] = await Promise.all([
+    getHomeStats(user.id),
+    getCounts(user.id),
+    getUserAnimeRow(user.id, "COMPLETED", 0, ROW_LIMIT),
+    getUserAnimeRow(user.id, "CURRENT", 0, ROW_LIMIT),
+    getUserAnimeRow(user.id, "PLANNING", 0, ROW_LIMIT),
+  ]);
+
+  stats = userStats;
+  counts = userCounts;
+  completed = userCompleted;
+  current = userCurrent;
+  planning = userPlanning;
+
+  averageScore =
+    stats.averageScore !== null
+      ? formatNumber(locale, stats.averageScore, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })
+      : dict.home.noScore;
+}
+
+const landingTitle = dict.meta.landingTitle;
+const landingDescription = dict.meta.description;
 ---
 
-<Layout title={dict.home.title} activeNav="inicio" counts={counts}>
-  <div class="pb-24">
-    <section class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-      <StatCard
-        value={formatNumber(locale, stats.completedCount)}
-        label={dict.home.completedAnimes}
-        progress={stats.animesProgressPercent}
-      />
-      <StatCard
-        value={formatNumber(locale, stats.completedEpisodes)}
-        label={dict.home.watchedEpisodes}
-        progress={stats.episodesProgressPercent}
-      />
-      <StatCard
-        value={averageScore}
-        label={dict.home.averageScore}
-        progress={stats.scoreProgressPercent}
-      />
-    </section>
+<Layout
+  title={user ? dict.home.title : landingTitle}
+  description={user ? undefined : landingDescription}
+  activeNav="inicio"
+  counts={counts}
+>
+  {user && stats && counts ? (
+    <div class="pb-24">
+      <section class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <StatCard
+          value={formatNumber(locale, stats.completedCount)}
+          label={dict.home.completedAnimes}
+          progress={stats.animesProgressPercent}
+        />
+        <StatCard
+          value={formatNumber(locale, stats.completedEpisodes)}
+          label={dict.home.watchedEpisodes}
+          progress={stats.episodesProgressPercent}
+        />
+        <StatCard
+          value={averageScore}
+          label={dict.home.averageScore}
+          progress={stats.scoreProgressPercent}
+        />
+      </section>
 
-    <MediaRow
-      client:visible
-      status="COMPLETED"
-      title={dict.home.completed}
-      href="/completados"
-      total={counts.completed}
-      initialItems={completed}
-      locale={locale}
-      dict={dict.home}
-    />
+      <MediaRow
+        client:visible
+        status="COMPLETED"
+        title={dict.home.completed}
+        href="/completados"
+        total={counts.completed}
+        initialItems={completed}
+        locale={locale}
+        dict={dict.home}
+      />
 
-    <MediaRow
-      client:visible
-      status="CURRENT"
-      title={dict.home.current}
-      href="/viendo"
-      total={counts.current}
-      initialItems={current}
-      locale={locale}
-      dict={dict.home}
-      withDivider={true}
-    />
+      <MediaRow
+        client:visible
+        status="CURRENT"
+        title={dict.home.current}
+        href="/viendo"
+        total={counts.current}
+        initialItems={current}
+        locale={locale}
+        dict={dict.home}
+        withDivider={true}
+      />
 
-    <MediaRow
-      client:visible
-      status="PLANNING"
-      title={dict.home.planning}
-      href="/pendientes"
-      total={counts.planning}
-      initialItems={planning}
-      locale={locale}
-      dict={dict.home}
-      withDivider={true}
-    />
-  </div>
+      <MediaRow
+        client:visible
+        status="PLANNING"
+        title={dict.home.planning}
+        href="/pendientes"
+        total={counts.planning}
+        initialItems={planning}
+        locale={locale}
+        dict={dict.home}
+        withDivider={true}
+      />
+    </div>
+  ) : (
+    <div class="pb-24">
+      {/* Hero */}
+      <section class="flex flex-col items-center py-16 text-center sm:py-24">
+        <div class="inline-flex items-center gap-2 rounded-full border border-violet/30 bg-violet/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-violet">
+          RecordAnime
+        </div>
+
+        <h1 class="mx-auto mt-5 max-w-3xl text-balance text-4xl font-extrabold tracking-tight text-text sm:text-5xl lg:text-6xl">
+          {dict.meta.landingH1}
+        </h1>
+
+        <p class="mx-auto mt-5 max-w-xl text-base leading-relaxed text-text-muted sm:text-lg">
+          {dict.meta.landingDescription}
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a
+            id="cta-register"
+            href="/registro"
+            class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-violet px-7 text-sm font-semibold text-white shadow-lg shadow-violet/25 transition hover:bg-violet/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet"
+          >
+            {dict.nav.register}
+          </a>
+          <a
+            id="cta-login"
+            href="/login"
+            class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 bg-surface-1 px-7 text-sm font-semibold text-text transition hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet"
+          >
+            {dict.nav.login}
+          </a>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section aria-labelledby="features-heading" class="mx-auto max-w-5xl">
+        <h2 id="features-heading" class="sr-only">{dict.meta.landingH1}</h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* Feature 1 */}
+          <article class="group rounded-2xl border border-white/5 bg-surface-1 p-6 transition hover:border-violet/20 hover:bg-surface-2">
+            <div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-violet/20 bg-violet/10 text-violet">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-text">{dict.meta.feature1Title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-text-muted">{dict.meta.feature1Desc}</p>
+          </article>
+
+          {/* Feature 2 */}
+          <article class="group rounded-2xl border border-white/5 bg-surface-1 p-6 transition hover:border-violet/20 hover:bg-surface-2">
+            <div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-violet/20 bg-violet/10 text-violet">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-text">{dict.meta.feature2Title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-text-muted">{dict.meta.feature2Desc}</p>
+          </article>
+
+          {/* Feature 3 */}
+          <article class="group rounded-2xl border border-white/5 bg-surface-1 p-6 transition hover:border-violet/20 hover:bg-surface-2">
+            <div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-violet/20 bg-violet/10 text-violet">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-text">{dict.meta.feature3Title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-text-muted">{dict.meta.feature3Desc}</p>
+          </article>
+        </div>
+      </section>
+    </div>
+  )}
 </Layout>
+

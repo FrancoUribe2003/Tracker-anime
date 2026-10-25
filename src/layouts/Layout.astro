@@ -8,6 +8,7 @@ import "../styles/global.css";
 
 interface Props {
   title?: string;
+  description?: string;
   activeNav?: "inicio" | "catalogo" | "hoy" | "top";
   counts?: {
     completed?: number;
@@ -17,10 +18,12 @@ interface Props {
   };
 }
 
-const { title, activeNav, counts } = Astro.props;
+const { title, description, activeNav, counts } = Astro.props;
 const locale = Astro.locals.locale;
 const dict = getDictionary(locale);
 const pageTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
+const pageDescription = description ?? dict.meta.description;
+const canonicalURL = new URL(Astro.url.pathname, "https://recordanime.vercel.app");
 const user = Astro.locals.user;
 const currentPath = Astro.url.pathname;
 ---
@@ -32,8 +35,12 @@ const currentPath = Astro.url.pathname;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="google-site-verification" content="sK5oWvn_PHADxhf5U07wn6OQ_YvCaLrW8phpz9dXk-A" />
-    <meta name="description" content={dict.meta.description} />
+    <meta name="description" content={pageDescription} />
+    <link rel="canonical" href={canonicalURL.href} />
+    <meta property="og:type" content="website" />
     <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
     <title>{pageTitle}</title>
   </head>
   <body class="flex min-h-dvh flex-col bg-obsidian font-sans text-text antialiased selection:bg-violet selection:text-white">

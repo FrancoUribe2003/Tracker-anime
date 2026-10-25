@@ -2,7 +2,8 @@ import { defineMiddleware } from "astro:middleware";
 import { auth } from "./lib/auth";
 import { isLocale, type Locale } from "./i18n";
 
-const PUBLIC_ROUTES = ["/login", "/registro"];
+const PUBLIC_ROUTES = ["/", "/login", "/registro", "/robots.txt", "/sitemap.xml"];
+const AUTH_ONLY_GUEST_ROUTES = ["/login", "/registro"];
 const PUBLIC_API_ROUTES = ["/api/locale"];
 const STATIC_ASSET_REGEX = /\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|txt|xml|woff|woff2|ttf|eot)$/;
 
@@ -89,7 +90,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.user = sessionData?.user ?? null;
   context.locals.session = sessionData?.session ?? null;
 
-  if (context.locals.user && isPublicRoute) {
+  if (context.locals.user && AUTH_ONLY_GUEST_ROUTES.includes(pathname)) {
     return withSecurityHeaders(context.redirect("/"));
   }
 

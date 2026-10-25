@@ -1,5 +1,4 @@
 User-agent: *
-Disallow: /
-Allow: /$
-Allow: /login
-Allow: /registro
+Allow: /
+
+Sitemap: https://recordanime.vercel.app/sitemap.xml
