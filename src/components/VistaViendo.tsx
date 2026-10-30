@@ -76,7 +76,7 @@ export default function VistaViendo({ items: initialItems, dict, statusDict, pro
   const [principal, ...rest] = items;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-anime-list={JSON.stringify(items.map((item) => item.anilistId))}>
       {items.length === 0 ? (
         <section className="mx-auto mt-8 max-w-xl rounded-2xl border border-white/5 bg-surface p-8 text-center shadow-xl sm:p-12">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/5 bg-surface-2 text-cyan">

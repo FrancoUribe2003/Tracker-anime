@@ -23,7 +23,7 @@ const [counts, pendingItems, planningOrder] = await Promise.all([
 ---
 
 <Layout title={dict.lists.planningTitle} activeNav="inicio" counts={counts}>
-  <div class="pb-8">
+  <div class="pb-8" data-anime-user={user.id} data-anime-return={Astro.url.pathname + Astro.url.search}>
     <PageHeader
       title={dict.lists.planningTitle}
       subtitle={dict.lists.planningSubtitle}
@@ -53,4 +53,8 @@ const [counts, pendingItems, planningOrder] = await Promise.all([
       )}
     </div>
   </div>
+  <script>
+    import { installAnimeListNavigation } from "../lib/anime-navigation";
+    installAnimeListNavigation();
+  </script>
 </Layout>

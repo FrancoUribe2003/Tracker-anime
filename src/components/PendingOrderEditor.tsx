@@ -198,6 +198,7 @@ export default function PendingOrderEditor({ initialItems, initialOrder = [], lo
       <section
         className="space-y-4"
         aria-label={labels.title}
+        data-anime-list={JSON.stringify(order)}
         onDragOver={(event) => {
           if (allowDrop(event) && drag.current!.before.includes(drag.current!.id)) preview(orderAtDrop(event));
         }}
@@ -284,6 +285,7 @@ export default function PendingOrderEditor({ initialItems, initialOrder = [], lo
       <section
         className="space-y-4"
         aria-label={labels.unordered}
+        data-anime-list={JSON.stringify(gridItems.map((item) => item.anilistId))}
         onDragOver={allowDrop}
         onDrop={(event) => {
           if (drag.current) drop(event, orderRef.current.filter((id) => id !== drag.current!.id));
