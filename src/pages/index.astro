@@ -22,7 +22,7 @@ const [stats, counts, completed, current, planning] = await Promise.all([
   getCounts(user.id),
   getUserAnimeRow(user.id, "COMPLETED", 0, ROW_LIMIT),
   getUserAnimeRow(user.id, "CURRENT", 0, ROW_LIMIT),
-  getUserAnimeRow(user.id, "PLANNING", 0, ROW_LIMIT),
+  getUserAnimeRow(user.id, "PLANNING", 0, ROW_LIMIT, "updatedAt"),
 ]);
 
 const averageScore =
