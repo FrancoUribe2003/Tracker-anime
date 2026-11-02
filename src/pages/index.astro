@@ -13,21 +13,13 @@ const locale = Astro.locals.locale;
 const dict = getDictionary(locale);
 const ROW_LIMIT = 12;
 
-let stats = null;
-let counts = undefined;
-let completed: any[] = [];
-let current: any[] = [];
-let planning: any[] = [];
-let averageScore = dict.home.noScore;
-
-if (user) {
-  const [userStats, userCounts, userCompleted, userCurrent, userPlanning] = await Promise.all([
-    getHomeStats(user.id),
-    getCounts(user.id),
-    getUserAnimeRow(user.id, "COMPLETED", 0, ROW_LIMIT),
-    getUserAnimeRow(user.id, "CURRENT", 0, ROW_LIMIT),
-    getUserAnimeRow(user.id, "PLANNING", 0, ROW_LIMIT),
-  ]);
+const [stats, counts, completed, current, planning] = await Promise.all([
+  getHomeStats(user.id),
+  getCounts(user.id),
+  getUserAnimeRow(user.id, "COMPLETED", 0, ROW_LIMIT),
+  getUserAnimeRow(user.id, "CURRENT", 0, ROW_LIMIT),
+  getUserAnimeRow(user.id, "PLANNING", 0, ROW_LIMIT),
+]);
 
   stats = userStats;
   counts = userCounts;

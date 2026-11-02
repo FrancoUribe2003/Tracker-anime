@@ -5,6 +5,7 @@ import { db } from "../../lib/db";
 import { userAnime } from "../../db/schema";
 import { getAnimeDetail, type AniListDetail } from "../../lib/anilist";
 import AnimeDetailPanel from "../../components/AnimeDetailPanel.tsx";
+import AnimeListNavigation from "../../components/AnimeListNavigation.tsx";
 import BackButton from "../../components/BackButton.tsx";
 import { ExternalLink } from "lucide-react";
 import { formatDate, formatNumber, getDictionary, t } from "../../i18n";
@@ -203,10 +204,11 @@ for (const link of detail?.externalLinks ?? []) {
       </section>
     ) : (
       <>
-        <BackButton client:load fallback={backFallback} label={dict.common.back} />
+        <BackButton fallback={backFallback} label={dict.common.back} />
 
         <!-- 1. Cabecera -->
-        <section class="relative overflow-hidden rounded-2xl border border-white/5 bg-surface shadow-xl">
+        <section class="group/anime-hero relative overflow-hidden rounded-2xl border border-white/5 bg-surface shadow-xl">
+          <AnimeListNavigation client:load animeId={detail.id} userId={user.id} locale={locale} />
           <div class="absolute inset-0" aria-hidden="true">
             {banner ? (
               <img src={banner} alt="" width={1920} height={1080} class="h-full w-full object-cover opacity-30" loading="lazy" decoding="async" />
@@ -216,7 +218,7 @@ for (const link of detail?.externalLinks ?? []) {
             <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/90 to-obsidian/60"></div>
           </div>
 
-          <div class="relative z-10 flex flex-col gap-5 p-5 sm:flex-row sm:p-7">
+          <div class="relative z-10 flex flex-col gap-5 p-5 group-has-[nav]/anime-hero:px-14 sm:flex-row sm:p-7 sm:group-has-[nav]/anime-hero:px-16">
             <div class="mx-auto w-40 shrink-0 sm:mx-0 sm:w-48">
               <div
                 class="aspect-[2/3] overflow-hidden rounded-xl border border-white/10 shadow-lg shadow-black/40"

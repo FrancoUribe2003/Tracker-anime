@@ -9,6 +9,7 @@ export const userAnime = sqliteTable(
     progress: integer("progress").notNull().default(0),
     score: integer("score"),
     topPosition: integer("top_position"),
+    planningOrder: integer("planning_order"),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -18,6 +19,7 @@ export const userAnime = sqliteTable(
     index("user_anime_user_status_updated_idx").on(table.userId, table.status, table.updatedAt),
     index("user_anime_user_status_idx").on(table.userId, table.status),
     index("user_anime_user_top_idx").on(table.userId, table.topPosition),
+    index("user_anime_user_status_planning_order_idx").on(table.userId, table.status, table.planningOrder),
   ]
 );
 

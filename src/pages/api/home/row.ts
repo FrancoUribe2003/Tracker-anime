@@ -38,7 +38,7 @@ export const GET: APIRoute = async (ctx) => {
     }
 
     const { status, offset, limit } = validation.data;
-    const items = await getUserAnimeRow(user.id, status, offset, limit);
+    const items = await getUserAnimeRow(user.id, status, offset, limit, "updatedAt");
 
     return json({ items, offset, limit });
   } catch (error: any) {

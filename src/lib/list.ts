@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "./db";
 import { userAnime } from "../db/schema";
 import { getAnimeByIds, type AniListAnime } from "./anilist";
@@ -109,7 +109,8 @@ export async function getUserAnimeRow(
   userId: string,
   status: UserStatus,
   offset: number,
-  limit: number
+  limit: number,
+  order: "planning" | "updatedAt" = "planning"
 ): Promise<RowCard[]> {
   let records: UserAnimeRecord[] = [];
   try {
@@ -117,7 +118,13 @@ export async function getUserAnimeRow(
       .select()
       .from(userAnime)
       .where(and(eq(userAnime.userId, userId), eq(userAnime.status, status)))
-      .orderBy(desc(userAnime.updatedAt), desc(userAnime.anilistId))
+      .orderBy(
+        ...(status === "PLANNING" && order === "planning"
+          ? [asc(isNull(userAnime.planningOrder)), asc(userAnime.planningOrder)]
+          : []),
+        desc(userAnime.updatedAt),
+        desc(userAnime.anilistId)
+      )
       .limit(limit)
       .offset(offset);
   } catch (dbError: any) {
@@ -142,6 +149,20 @@ export async function getUserAnimeRow(
       score: record.score ?? null,
     };
   });
+}
+
+export async function getPlanningOrder(userId: string): Promise<number[]> {
+  const records = await db
+    .select({ anilistId: userAnime.anilistId })
+    .from(userAnime)
+    .where(and(
+      eq(userAnime.userId, userId),
+      eq(userAnime.status, "PLANNING"),
+      isNotNull(userAnime.planningOrder)
+    ))
+    .orderBy(asc(userAnime.planningOrder));
+
+  return records.map((record) => record.anilistId);
 }
 
 export async function getUserStatuses(

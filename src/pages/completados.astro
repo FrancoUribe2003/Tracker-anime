@@ -86,7 +86,7 @@ const nextPageUrl =
   activeNav="inicio"
   counts={counts}
 >
-  <div class="pb-24">
+  <div class="pb-24" data-anime-user={user.id} data-anime-return={Astro.url.pathname + Astro.url.search}>
     <PageHeader
       title={dict.lists.completedTitle}
       subtitle={dict.lists.completedSubtitle}
@@ -130,7 +130,10 @@ const nextPageUrl =
       </section>
     ) : (
       <section class="space-y-8">
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div
+          class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+          data-anime-list={JSON.stringify(completedItems.map((item) => item.userRecord.anilistId))}
+        >
           {paginatedItems.map((item) => {
             const title =
               item.animeData?.title?.romaji ||
@@ -200,4 +203,8 @@ const nextPageUrl =
       </div>
     </div>
   </div>
+  <script>
+    import { installAnimeListNavigation } from "../lib/anime-navigation";
+    installAnimeListNavigation();
+  </script>
 </Layout>
